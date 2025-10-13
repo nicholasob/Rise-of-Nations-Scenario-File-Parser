@@ -1,5 +1,5 @@
 #pragma once
-#include "../../chunk_types.h"
+#include "../chunk_types.h"
 #include <vector>
 #include <cstdint>
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "data_structures.h"
-#include "include/common/encryption.h"
+#include "common/encryption.h"
 #include <iostream>
 #include <utility>
 #include <algorithm>

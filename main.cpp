@@ -13,9 +13,6 @@
 #include "chunk_parsers.h"
 #include "scenario_parser.h"
 
-#define SCENARIO_FILE_NAME "7scx.scx"
-#define SAVE_FILE_RESULT "7scx.scx"
-
 size_t TILE_VISIBILITY_COUNT = SIZE_MAX; 
 size_t SPATIAL_GROUP_COUNT = SIZE_MAX;
 //store coordinate counts for each group
@@ -35,11 +32,16 @@ size_t LOCATION_COUNT = SIZE_MAX;
 size_t ENTITY_COUNT = SIZE_MAX;
 
 int main(int argc, char* argv[]) {
-    bool allocated_argv = false;
-    
-    if(argc != 2){
-        std::cerr << "Usage: read_scn <file.scn>\n";
+    if(argc < 2 || argc > 3){
+        std::cerr << "Usage: read_scn <input.scn> [output.scx]\n";
         return 1;
+    }
+
+    std::string output_path = "savefile.scx";
+    bool savefile_set = false;
+    if(argc == 3){
+        output_path = argv[2];
+        savefile_set = true;
     }
 
     std::ifstream file(argv[1], std::ios::binary);
@@ -865,17 +867,15 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::ofstream out("savefile.scx", std::ios::binary);
-    if (!out) {
-        std::cerr << "Failed to open output file for writing.\n";
-        return 1;
-    }
-    out.write(reinterpret_cast<const char*>(decompressed.data()), decompressed.size());
-    out.close();
-    
-    //clean up dynamically allocated memory
-    if (allocated_argv) {
-        delete[] argv[1];
+    if(savefile_set)
+    {
+        std::ofstream out(output_path, std::ios::binary);
+        if (!out) {
+            std::cerr << "Failed to open output file for writing.\n";
+            return 1;
+        }
+        out.write(reinterpret_cast<const char*>(decompressed.data()), static_cast<std::streamsize>(decompressed.size()));
+        out.close();
     }
     
     return 0;

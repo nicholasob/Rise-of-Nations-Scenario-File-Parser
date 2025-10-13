@@ -85,12 +85,17 @@ if(BUILD_CLI)
     add_executable(scenario_parser_cli main.cpp)
     target_link_libraries(scenario_parser_cli PRIVATE scenario_parser_core)
     set_target_properties(scenario_parser_cli PROPERTIES OUTPUT_NAME "scenario_parser")
-endif()
-
-#Install CLI
-if(BUILD_CLI)
+    # Link libstdc++/libgcc statically (Release only)
+    if(NOT MSVC)
+        target_link_options(scenario_parser_cli PRIVATE
+            $<$<CONFIG:Release>:-static-libstdc++ -static-libgcc>
+        )
+    endif()
+    
+    #Install CLI
     install(TARGETS scenario_parser_cli DESTINATION bin)
 endif()
+
 
 #Copy zlib DLL (Windows only)
 if(WIN32 AND ZLIB_FOUND)

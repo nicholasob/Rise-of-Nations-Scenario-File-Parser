@@ -19,7 +19,7 @@
 #include "chunks/diplomatic_chunks.h"
 
 //include external dependencies
-#include "../chunk_types.h"
+#include "chunk_types.h"
 
 //standard library includes
 #include <vector>
