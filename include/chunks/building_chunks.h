@@ -45,10 +45,10 @@ struct CityBuildingPropertiesChunk0x1e : public ByteConvertible<CityBuildingProp
     uint32_t encrypted_param_2;         // +0x10: Attack/range/capacity (XOR 0x63637)
     uint32_t city_flags;                // +0x14: City status flags (bit 1, bit 2)  
     int32_t  city_id;                   // +0x18: City ID (-1 if orphaned building)
-    char16_t city_name[100];            // +0x1C: associated city name (200 bytes)
-    char16_t  building_name[256];        // +0xE8: Building name (512 bytes, wide char)
-    int32_t  city_capability_flag;      // +0x2E8: Whether building can be part of city (local_5c)
-    uint32_t padding_or_unknown[2];     // +0x2EC: 8 bytes to reach exactly 752 bytes total
+    uint32_t padding_or_unknown[2];     // +0x1C: 8 bytes to reach exactly 752 bytes total - unknown data
+    char16_t city_name[100];            // +0x24: associated city name (200 bytes)
+    char16_t  building_name[256];       // +0xEC: Building name (512 bytes, wide char)
+    int32_t  city_capability_flag;      // +0x2EC: Whether building can be part of city (local_5c) - double check this again.
     //Total struct size: 0x2F0 bytes (752 bytes)
 };
 #pragma pack(pop)
