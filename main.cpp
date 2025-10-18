@@ -931,7 +931,7 @@ int RunModifyMode(int argc, char* argv[]) {
     //minimum args: program --modify input output
     if(argc < 4) {
         std::cerr << "Error: Modify mode requires input and output files\n";
-        std::cerr << "Usage: scenario_parser --modify <input.scn> <output.scx> [options]\n";
+        std::cerr << "Usage: scenario_parser --modify <input.scx> <output.scx> [options]\n";
         return 1;
     }
     
