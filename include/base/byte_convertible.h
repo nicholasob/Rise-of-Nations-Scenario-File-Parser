@@ -4,6 +4,9 @@
 #include <stdexcept>
 #include <cstdint>
 
+//forward declaration
+struct Chunk;
+
 //base class for converting byte data to structs
 template<typename T>
 class ByteConvertible {
@@ -44,6 +47,22 @@ public:
         std::vector<std::byte> result(sizeof(T));
         std::memcpy(result.data(), derived, sizeof(T));
         return result;
+    }
+    
+    //update a chunk's data with this struct's bytes
+    bool updateInChunk(Chunk& chunk) const {
+        auto bytes = to_bytes();
+        if (bytes.size() != chunk.data.size()) {
+            //size mismatch - don't update!
+            return false;
+        }
+        chunk.data = bytes;
+        return true;
+    }
+    
+    //update a chunk's data
+    void replaceChunkData(Chunk& chunk) const {
+        chunk.data = to_bytes();
     }
 };
 

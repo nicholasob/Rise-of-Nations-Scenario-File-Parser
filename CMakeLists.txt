@@ -74,6 +74,10 @@ set(CORE_SOURCES
     compression.cpp
     encryption.cpp
     scenario_parser.cpp
+    chunk_serializer.cpp
+    chunk_validator.cpp
+    scenario_modifier.cpp
+    scenario_editor.cpp
 )
 
 add_library(scenario_parser_core STATIC ${CORE_SOURCES})

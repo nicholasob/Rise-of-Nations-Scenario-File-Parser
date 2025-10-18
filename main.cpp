@@ -12,6 +12,8 @@
 #include "data_structures.h"
 #include "chunk_parsers.h"
 #include "scenario_parser.h"
+#include "scenario_editor.h"
+#include "scenario_modifier.h"
 
 size_t TILE_VISIBILITY_COUNT = SIZE_MAX; 
 size_t SPATIAL_GROUP_COUNT = SIZE_MAX;
@@ -31,9 +33,52 @@ size_t FEATURE_COUNT = SIZE_MAX;
 size_t LOCATION_COUNT = SIZE_MAX;
 size_t ENTITY_COUNT = SIZE_MAX;
 
+int RunParseMode(int argc, char* argv[]);
+int RunModifyMode(int argc, char* argv[]);
+void PrintUsageHelp();
+void PrintModifyHelp();
+
 int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        PrintUsageHelp();
+        return 1;
+    }
+    
+    std::string command = argv[1];
+    
+    //check if the user wants to modify the scenario file
+    if (command == "--modify" || command == "-m") {
+        return RunModifyMode(argc, argv);
+    }
+    
+    //otherwise run in parse mode
+    return RunParseMode(argc, argv);
+}
+
+void PrintUsageHelp() {
+    std::cout << "Rise of Nations Scenario File Parser\n\n";
+    std::cout << "Usage:\n";
+    std::cout << "  Parse mode: scenario_parser <input.scx> [output.scx]\n";
+    std::cout << "              Parses and displays scenario file structure\n\n";
+    std::cout << "  Modify mode: scenario_parser --modify <input.scx> <output.scx> [options]\n";
+    std::cout << "               Load, modify, and save scenario files\n\n";
+    std::cout << "Modify Options:\n";
+    std::cout << "  --player-name <index> <name>     Set player name (index 0-7)\n";
+    std::cout << "  --player-color <index> <color>   Set player color (index 0-7, color 0-7)\n";
+    std::cout << "  --player-nation <index> <nation> Set player nation ID\n";
+    std::cout << "  --player-diff <index> <diff>     Set player difficulty (0=Easiest, 5=Toughest)\n";
+    std::cout << "  --player-control <index> <type>  Set control (0=computer, 1=human)\n";
+    std::cout << "  --no-compress                    Save without gzip compression\n";
+    std::cout << "  --validate                       Validate all modifications before saving\n";
+    std::cout << "\nExamples:\n";
+    std::cout << "  scenario_parser scenario.scx\n";
+    std::cout << "  scenario_parser --modify input.scx output.scx --player-name 0 \"My Player\"\n";
+    std::cout << "  scenario_parser -m input.scx output.scx --player-color 1 3 --player-diff 1 4\n";
+}
+
+int RunParseMode(int argc, char* argv[]) {
     if(argc < 2 || argc > 3){
-        std::cerr << "Usage: read_scn <input.scn> [output.scx]\n";
+        std::cerr << "Usage: scenario_parser <input.scx> [output.scx]\n";
         return 1;
     }
 
@@ -53,14 +98,15 @@ int main(int argc, char* argv[]) {
     std::vector<uint8_t> data((std::istreambuf_iterator<char>(file)), {});
     file.close();
 
-    //All scenario files are compressed using gzip
+    //all scenario files are compressed using gzip
     std::vector<uint8_t> decompressed;
     if(GzipHelper::isGzip(data)){
         if(!GzipHelper::decompressGzip(data, decompressed)){
             std::cerr << "Failed to decompress GZip.\n";
             return 1;
         }
-    }else{
+    }
+    else{
         decompressed = std::move(data);
     }
 
@@ -70,14 +116,14 @@ int main(int argc, char* argv[]) {
         std::vector<Chunk> rootChunks;
         
         while(offset < decompressed.size()){
-            Chunk chunk = ScenarioParser::parseChunk(decompressed, offset);
+            Chunk chunk = ScenarioParser::ParseChunk(decompressed, offset);
             rootChunks.push_back(std::move(chunk));
         }
         
         //printing the chunk tree structure
         std::cout << "Scenario file structure:" << std::endl;
         for (const auto& chunk : rootChunks) {
-            ScenarioParser::printChunkTree(chunk);
+            ScenarioParser::PrintChunkTree(chunk);
         }
         
         std::queue<const Chunk*> chunks;
@@ -489,7 +535,7 @@ int main(int argc, char* argv[]) {
                 }
                 break;
 
-                case ChunkType::GARRISON_COUNT: // 0x21
+                case ChunkType::GARRISON_COUNT: //0x21
                 {
                     std::cout << "Garrison Count chunk size: " << front->data.size() << std::endl;
                     if ((unsigned long int)front->data.size() >= sizeof(GarrisonCountHeaderChunk0x21)) {
@@ -879,4 +925,138 @@ int main(int argc, char* argv[]) {
     }
     
     return 0;
+}
+
+int RunModifyMode(int argc, char* argv[]) {
+    //minimum args: program --modify input output
+    if(argc < 4) {
+        std::cerr << "Error: Modify mode requires input and output files\n";
+        std::cerr << "Usage: scenario_parser --modify <input.scn> <output.scx> [options]\n";
+        return 1;
+    }
+    
+    std::string inputPath = argv[2];
+    std::string outputPath = argv[3];
+    bool compress = true;
+    bool validateOnly = false;
+    
+    //create editor and load scenario
+    ScenarioEditor editor;
+    std::cout << "Loading scenario file: " << inputPath << std::endl;
+    
+    if(!editor.LoadScenario(inputPath)) {
+        std::cerr << "Failed to load scenario file\n";
+        return 1;
+    }
+    
+    //get modifier interface
+    ScenarioModifier modifier = editor.GetModifier();
+    
+    //process modification options
+    for(int i = 4; i < argc; ++i) {
+        std::string arg = argv[i];
+        
+        if(arg == "--no-compress") {
+            compress = false;
+            std::cout << "Compression disabled\n";
+        }
+        else if(arg == "--validate") {
+            validateOnly = true;
+        }
+        else if(arg == "--player-name" && i + 2 < argc) {
+            uint32_t playerIndex = std::atoi(argv[++i]);
+            std::string name = argv[++i];
+            
+            //convert to UTF-16
+            std::u16string u16name;
+            for(char c : name) {
+                u16name.push_back(static_cast<char16_t>(c));
+            }
+            
+            if(modifier.SetPlayerName(playerIndex, u16name)) {
+                std::cout << "Set player " << playerIndex << " name to: " << name << std::endl;
+            }
+            else {
+                std::cerr << "Failed to set player " << playerIndex << " name\n";
+            }
+        }
+        else if(arg == "--player-color" && i + 2 < argc) {
+            uint32_t playerIndex = std::atoi(argv[++i]);
+            uint8_t colorIndex = static_cast<uint8_t>(std::atoi(argv[++i]));
+            
+            if(modifier.SetPlayerColor(playerIndex, colorIndex)) {
+                std::cout << "Set player " << playerIndex << " color to: " << static_cast<int>(colorIndex) << std::endl;
+            }
+            else {
+                std::cerr << "Failed to set player " << playerIndex << " color\n";
+            }
+        }
+        else if(arg == "--player-nation" && i + 2 < argc) {
+            uint32_t playerIndex = std::atoi(argv[++i]);
+            uint32_t nationIndex = std::atoi(argv[++i]);
+            
+            if(modifier.SetPlayerNation(playerIndex, nationIndex)) {
+                std::cout << "Set player " << playerIndex << " nation to: " << nationIndex << std::endl;
+            }
+            else {
+                std::cerr << "Failed to set player " << playerIndex << " nation\n";
+            }
+        }
+        else if (arg == "--player-diff" && i + 2 < argc) {
+            uint32_t playerIndex = std::atoi(argv[++i]);
+            uint32_t difficulty = std::atoi(argv[++i]);
+            
+            if (modifier.SetPlayerDifficulty(playerIndex, difficulty)) {
+                std::cout << "Set player " << playerIndex << " difficulty to: " << difficulty << std::endl;
+            } else {
+                std::cerr << "Failed to set player " << playerIndex << " difficulty\n";
+            }
+        }
+        else if (arg == "--player-control" && i + 2 < argc) {
+            uint32_t playerIndex = std::atoi(argv[++i]);
+            bool isHuman = std::atoi(argv[++i]) != 0;
+            
+            if (modifier.SetPlayerControl(playerIndex, isHuman)) {
+                std::cout << "Set player " << playerIndex << " control to: " 
+                         << (isHuman ? "human" : "computer") << std::endl;
+            } else {
+                std::cerr << "Failed to set player " << playerIndex << " control\n";
+            }
+        }
+        else if (arg.substr(0, 2) == "--") {
+            std::cerr << "Unknown option: " << arg << std::endl;
+        }
+    }
+    
+    //update chunk sizes after modifications
+    modifier.UpdateAllChunkSizes();
+    
+    //validate
+    std::cout << "\nValidating modifications...\n";
+    if(!modifier.Validate()) {
+        std::cerr << "Validation failed!\n";
+        if(!validateOnly) {
+            std::cerr << "Aborting save operation\n";
+            return 1;
+        }
+    }
+    else {
+        std::cout << "Validation passed!\n";
+    }
+    
+    if(validateOnly) {
+        std::cout << "Validate-only mode, not saving\n";
+        return 0;
+    }
+    
+    //save the modified scenario
+    std::cout << "\nSaving modified scenario to: " << outputPath << std::endl;
+    if (editor.Save(outputPath, compress)) {
+        std::cout << "Successfully saved modified scenario!\n";
+        return 0;
+    }
+    else {
+        std::cerr << "Failed to save modified scenario\n";
+        return 1;
+    }
 }

@@ -47,7 +47,7 @@ struct CityBuildingPropertiesChunk0x1e : public ByteConvertible<CityBuildingProp
     int32_t  city_id;                   // +0x18: City ID (-1 if orphaned building)
     uint32_t padding_or_unknown[2];     // +0x1C: 8 bytes to reach exactly 752 bytes total - unknown data
     char16_t city_name[100];            // +0x24: associated city name (200 bytes)
-    char16_t  building_name[256];       // +0xEC: Building name (512 bytes, wide char)
+    char16_t  building_name[256];       // +0xEC: Building name (512 bytes, wide char) - must match existing name of building
     int32_t  city_capability_flag;      // +0x2EC: Whether building can be part of city (local_5c) - double check this again.
     //Total struct size: 0x2F0 bytes (752 bytes)
 };
