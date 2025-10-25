@@ -30,6 +30,16 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
             }
+        },
+        {
+            "name": "windows-debug",
+            "displayName": "Windows Debug Configuration",
+            "description": "Windows debug build",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_CLI": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -44,6 +54,10 @@
         {
             "name": "debug",
             "configurePreset": "debug"
+        },
+        {
+            "name": "windows-debug",
+            "configurePreset": "windows-debug"
         }
     ]
 }

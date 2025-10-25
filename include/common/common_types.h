@@ -16,6 +16,11 @@ static_assert(sizeof(RGBColor) == 0x3, "RGBColor must be exactly 3 bytes");
 struct Coordinate {
     int32_t X;
     int32_t Y;
+
+    Coordinate(int32_t x, int32_t y){
+        this->X = x;
+        this->Y = y;
+    }
 };
 #pragma pack(pop)
 

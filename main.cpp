@@ -6,6 +6,7 @@
 #include <locale>
 #include <codecvt>
 #include <cstring>
+#include <algorithm>
 
 #include "chunk_types.h"
 #include "compression.h"
@@ -15,10 +16,9 @@
 #include "scenario_editor.h"
 #include "scenario_modifier.h"
 
-size_t TILE_VISIBILITY_COUNT = SIZE_MAX; 
-size_t SPATIAL_GROUP_COUNT = SIZE_MAX;
+size_t TILE_VISIBILITY_COUNT = SIZE_MAX;
 //store coordinate counts for each group
-std::vector<size_t> GROUP_COORDINATE_COUNTS;
+std::vector<SpatialGroup> SPATIAL_GROUPS;
 
 //Additional global variables for dynamic chunk parsing
 size_t MAP_TOTAL_TILES = SIZE_MAX;
@@ -39,6 +39,11 @@ void PrintUsageHelp();
 void PrintModifyHelp();
 
 int main(int argc, char* argv[]) {
+    static char* fake_argv[] = { argv[0], "rio.scx" };
+
+    argc = 2;
+    argv = fake_argv;
+
     if (argc < 2) {
         PrintUsageHelp();
         return 1;
@@ -257,13 +262,12 @@ int RunParseMode(int argc, char* argv[]) {
                             VisibilityTriangleIndicesChunk0x65 visibilityIndices = 
                                 VisibilityTriangleIndicesChunk0x65::from_bytes(front->data, TILE_VISIBILITY_COUNT);
                             
-                            std::cout << "Parsed " << visibilityIndices.indices.size() << " triangle indices. Example: " << visibilityIndices.indices[0] << std::endl;
+                            std::cout << "Parsed " << visibilityIndices.indices.size() << " triangle indices. Example of triangle indice value: " << visibilityIndices.indices[0] << std::endl;
                             
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing visibility indices: " << e.what() << std::endl;
                         }
                     }
-                    std::cout << "Hello! " << TILE_VISIBILITY_COUNT << std::endl;
                 }
                 break;
                 case ChunkType::SPATIAL_GROUP_COUNT: //0x5D
@@ -273,13 +277,11 @@ int RunParseMode(int argc, char* argv[]) {
                     if ((unsigned long int)front->data.size() >= sizeof(AdvancedFeature2SpatialGroupCountChunk0x5D)) {
                         try {
                             AdvancedFeature2SpatialGroupCountChunk0x5D spatialGroupCount = AdvancedFeature2SpatialGroupCountChunk0x5D::from_bytes(front->data);
-                            SPATIAL_GROUP_COUNT = spatialGroupCount.group_count;
+
+                            SpatialGroup spatialGroup(spatialGroupCount.group_count);
+                            SPATIAL_GROUPS.push_back(spatialGroup);
                             
-                            //initialize the coordinate counts vector
-                            GROUP_COORDINATE_COUNTS.clear();
-                            GROUP_COORDINATE_COUNTS.reserve(SPATIAL_GROUP_COUNT);
-                            
-                            std::cout << "Found " << SPATIAL_GROUP_COUNT << " spatial groups" << std::endl;
+                            std::cout << "Found " << spatialGroupCount.group_count << " spatial groups" << std::endl;
                             
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing spatial group count: " << e.what() << std::endl;
@@ -292,7 +294,7 @@ int RunParseMode(int argc, char* argv[]) {
                 {
                     std::cout << "Group Coordinate Count chunk size: " << front->data.size() << std::endl;
                     
-                    if (SPATIAL_GROUP_COUNT == SIZE_MAX) {
+                    if (SPATIAL_GROUPS.size() == 0) {
                         std::cerr << "Error: GROUP_COORDINATE_COUNT chunk found before SPATIAL_GROUP_COUNT chunk" << std::endl;
                         continue;
                     }
@@ -302,10 +304,14 @@ int RunParseMode(int argc, char* argv[]) {
                             AdvancedFeature2GroupCoordinateCountChunk0x5E coordCount = AdvancedFeature2GroupCoordinateCountChunk0x5E::from_bytes(front->data);
                             
                             //store this coordinate count for the corresponding 0x5F chunk
-                            GROUP_COORDINATE_COUNTS.push_back(coordCount.coordinate_count);
-                            
-                            std::cout << "Group " << (GROUP_COORDINATE_COUNTS.size() - 1) 
-                                    << " has " << coordCount.coordinate_count << " coordinates" << std::endl;
+                            CoordinateGroup coordGroup(coordCount.coordinate_count);
+
+                            SPATIAL_GROUPS[SPATIAL_GROUPS.size() - 1].CoordinateGroup.push_back(coordGroup);
+
+                            std::cout << "Spatial group " << (SPATIAL_GROUPS.size() - 1) 
+                                    << ", coordinate group " << SPATIAL_GROUPS.back().CoordinateGroup.size() - 1 
+                                    << " has " 
+                                    << coordCount.coordinate_count << " coordinates" << std::endl;
                             
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing group coordinate count: " << e.what() << std::endl;
@@ -314,67 +320,39 @@ int RunParseMode(int argc, char* argv[]) {
                 }
                 break;
 
-                /*
-                case ChunkType::COORDINATE_DATA:
-                    if (front->data.size() >= sizeof(Coordinate)) {
-                        try {
-                            Coordinate cord = Coordinate::from_bytes(front->data);
-                            std::cout << "X: " << std::dec << cord.X << ", Y: " << std::dec << cord.Y << std::endl;
-                        } catch (const std::exception& e) {
-                            std::cerr << "Error parsing coordinate: " << e.what() << std::endl;
-                        }
-                    }
-                    break;
-                */  
                 case ChunkType::COORDINATE_DATA: //0x5F
                 {
                     std::cout << "Coordinate Data chunk size: " << front->data.size() << std::endl;
                     
-                    if (GROUP_COORDINATE_COUNTS.empty()) {
-                        std::cerr << "Error: COORDINATE_DATA chunk found before any GROUP_COORDINATE_COUNT chunks" << std::endl;
+                    if (SPATIAL_GROUPS.empty()) {
+                        std::cerr << "Error: COORDINATE_DATA chunk found before SPATIAL_GROUP_COUNT chunk" << std::endl;
                         continue;
                     }
                     
-                    //need to determine which group this coordinate data belongs to
-                    //currently this assumes chunks are processed in order: 0x5D, then pairs of (0x5E, 0x5F)
-                    static size_t current_group_index = 0;
-                    
-                    if (current_group_index >= GROUP_COORDINATE_COUNTS.size()) {
-                        std::cerr << "Error: More COORDINATE_DATA chunks than expected" << std::endl;
+                    if (SPATIAL_GROUPS.back().CoordinateGroup.empty()) {
+                        std::cerr << "Error: COORDINATE_DATA chunk found before GROUP_COORDINATE_COUNT chunk" << std::endl;
                         continue;
                     }
                     
-                    size_t expected_coordinate_count = GROUP_COORDINATE_COUNTS[current_group_index];
-                    size_t expected_size = expected_coordinate_count * sizeof(AdvancedFeature2CoordinateEntry);
+                    //get the expected count from the last coordinate group
+                    CoordinateGroup& currentGroup = SPATIAL_GROUPS.back().CoordinateGroup.back();
                     
-                    if ((unsigned long int)front->data.size() >= expected_size) {
+                    if ((unsigned long int)front->data.size() >= sizeof(AdvancedFeature2CoordinateArrayChunk0x5F)) {
                         try {
-                            AdvancedFeature2CoordinateArrayChunk0x5F coordinateArray = 
-                                AdvancedFeature2CoordinateArrayChunk0x5F::from_bytes(front->data, expected_coordinate_count);
+                            AdvancedFeature2CoordinateArrayChunk0x5F coord = 
+                                AdvancedFeature2CoordinateArrayChunk0x5F::from_bytes(
+                                    front->data
+                                );
+
+                            currentGroup.Coordinates.push_back(Coordinate(coord.x_processed, coord.y_processed));
                             
-                            std::cout << "Group " << current_group_index << " coordinates:" << std::endl;
-                            
-                            //print first few coordinates
-                            size_t print_limit = std::min(static_cast<size_t>(5), coordinateArray.coordinate_entries.size());
-                            for (size_t i = 0; i < print_limit; ++i) {
-                                const auto& coord = coordinateArray.coordinate_entries[i];
-                                std::cout << "  [" << i << "] X: " << coord.x_processed 
-                                        << ", Y: " << coord.y_processed << std::endl;
-                            }
-                            
-                            if (coordinateArray.coordinate_entries.size() > print_limit) {
-                                std::cout << "  ... and " << (coordinateArray.coordinate_entries.size() - print_limit) 
-                                        << " more coordinates" << std::endl;
-                            }
-                            
-                            current_group_index++;
+                            std::cout << "Parsed " << currentGroup.Coordinates.size() 
+                                     << " coordinates for group " << (SPATIAL_GROUPS.size() - 1) 
+                                     << ", coordinate group " << (SPATIAL_GROUPS.back().CoordinateGroup.size() - 1) << std::endl;
                             
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing coordinate array: " << e.what() << std::endl;
                         }
-                    } else {
-                        std::cerr << "Error: Coordinate data size (" << front->data.size() 
-                                << ") smaller than expected (" << expected_size << ")" << std::endl;
                     }
                 }
                 break;

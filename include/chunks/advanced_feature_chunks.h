@@ -1,7 +1,36 @@
 #pragma once
 #include "../base/byte_convertible.h"
+#include "../base/chunk_base.h"
 #include "../common/common_types.h"
 #include <cstdint>
+#include <cstddef>
+#include <vector>
+#include <stdexcept>
+#include <cstring>
+
+
+class CoordinateGroup{
+public:
+    uint32_t NumberOfCoordinates;
+    std::vector<Coordinate> Coordinates;
+
+    CoordinateGroup(uint32_t numberOfCoordinates){
+        this->NumberOfCoordinates = numberOfCoordinates;
+        Coordinates.reserve(numberOfCoordinates);
+    }
+};
+
+class SpatialGroup{
+private:
+public:
+    uint32_t NumberOfCoordinateGroups;
+    std::vector<CoordinateGroup> CoordinateGroup;
+
+    SpatialGroup(uint32_t numberOfCoordinateGroups){
+        this->NumberOfCoordinateGroups = numberOfCoordinateGroups;
+        CoordinateGroup.reserve(numberOfCoordinateGroups);
+    }
+};
 
 #pragma pack(push, 1)
 struct AdvancedFeature1MountainFeaturesChunk0x46 : public ByteConvertible<AdvancedFeature1MountainFeaturesChunk0x46> {
@@ -46,57 +75,34 @@ struct AdvancedFeature1MountainFeatureChunk0x47 : public VariableLengthArrayChun
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-//iindividual coordinate/position entry (8 bytes data)
-struct AdvancedFeature2CoordinateEntry : public ByteConvertible<AdvancedFeature2CoordinateEntry> {
+// Chunk 0x5F: Coordinate Entry
+//individual coordinate/position entry (8 bytes data)
+struct AdvancedFeature2CoordinateArrayChunk0x5F : public ByteConvertible<AdvancedFeature2CoordinateArrayChunk0x5F> {
     uint32_t x_processed;   //X coordinate after the lookup table processing
     uint32_t y_processed;   //Y coordinate after the lookup table processing
+    
+    AdvancedFeature2CoordinateArrayChunk0x5F(uint32_t x = 0, uint32_t y = 0) : x_processed(x), y_processed(y) {}
 };
 #pragma pack(pop)
-static_assert(sizeof(AdvancedFeature2CoordinateEntry) == 0x8, "CoordinateEntry must be exactly 8 bytes");
+static_assert(sizeof(AdvancedFeature2CoordinateArrayChunk0x5F) == 0x8, "CoordinateEntry must be exactly 8 bytes");
 
-#pragma pack(push, 1)
 // Chunk 0x5D: Spatial Group Count
 //this is the main chunk that contains the number of spatial groups
+#pragma pack(push, 1)
 struct AdvancedFeature2SpatialGroupCountChunk0x5D : public ByteConvertible<AdvancedFeature2SpatialGroupCountChunk0x5D> {
     uint32_t group_count;   // number of spatial groups (from DAT_00c11c14), each group will have a corresponding 0x5e sub-chunk
 };
 #pragma pack(pop)
 static_assert(sizeof(AdvancedFeature2SpatialGroupCountChunk0x5D) == 0x4, "SpatialGroupCountChunk0x5D must be exactly 4 bytes");
 
-#pragma pack(push, 1)
 // Chunk 0x5E: Group Coordinate Count
 // this chunk contains the count of coordinates that will follow in 0x5f sub-chunks
+#pragma pack(push, 1)
 struct AdvancedFeature2GroupCoordinateCountChunk0x5E : public ByteConvertible<AdvancedFeature2GroupCoordinateCountChunk0x5E> {
     uint32_t coordinate_count;  //number of coordinate entries in this group (from offset 0x68 in group structure)
 };
 #pragma pack(pop)
 static_assert(sizeof(AdvancedFeature2GroupCoordinateCountChunk0x5E) == 0x4, "GroupCoordinateCountChunk0x5E must be exactly 4 bytes");
-
-#pragma pack(push, 1)
-// Chunk 0x5F: Variable-length array of coordinate data
-//this chunk contains coordinate_count * CoordinateEntry structures
-struct AdvancedFeature2CoordinateArrayChunk0x5F : public VariableLengthArrayChunk<AdvancedFeature2CoordinateArrayChunk0x5F, AdvancedFeature2CoordinateEntry> {
-    std::vector<AdvancedFeature2CoordinateEntry> coordinate_entries;
-
-    AdvancedFeature2CoordinateArrayChunk0x5F() = default;
-
-    AdvancedFeature2CoordinateArrayChunk0x5F(const AdvancedFeature2GroupCoordinateCountChunk0x5E& header) {
-        coordinate_entries.resize(header.coordinate_count);
-    }
-
-    AdvancedFeature2CoordinateArrayChunk0x5F(const size_t& coordinate_count) {
-        coordinate_entries.resize(coordinate_count);
-    }
-
-    std::vector<AdvancedFeature2CoordinateEntry>& get_container() override {
-        return coordinate_entries;
-    }
-    
-    const std::vector<AdvancedFeature2CoordinateEntry>& get_container() const override {
-        return coordinate_entries;
-    }
-};
-#pragma pack(pop)
 
 // Sub-chunk 0x61 - Contains count of 0x62 entries
 #pragma pack(push,1)
