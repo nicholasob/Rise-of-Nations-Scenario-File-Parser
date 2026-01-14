@@ -436,13 +436,17 @@ void ChunkMetadata::registerChunks()
     techTreeUnitCount.fields.push_back(FieldInfo("count", 0, 4, "uint32_t", "Number of unit types"));
     registerChunk(techTreeUnitCount);
 
-    registerChunk(ChunkInfo(ChunkType::TECH_TREE_UNIT_TYPE_NAMES, "TECH_TREE_UNIT_TYPE_NAMES", "Tech Tree", 0, colorMetadata));
+    ChunkInfo techTreeUnitNames(ChunkType::TECH_TREE_UNIT_TYPE_NAMES, "TECH_TREE_UNIT_TYPE_NAMES", "Tech Tree", 512, colorMetadata);
+    techTreeUnitNames.fields.push_back(FieldInfo("unit_type_name", 0, 512, "char16_t[256]", "Unit type name (UTF-16)"));
+    registerChunk(techTreeUnitNames);
 
     ChunkInfo techTreeBuildingCount(ChunkType::TECH_TREE_BUILDING_TYPE_COUNT, "TECH_TREE_BUILDING_TYPE_COUNT", "Tech Tree", 4, colorMetadata);
     techTreeBuildingCount.fields.push_back(FieldInfo("count", 0, 4, "uint32_t", "Number of building types"));
     registerChunk(techTreeBuildingCount);
 
-    registerChunk(ChunkInfo(ChunkType::TECH_TREE_BUILDING_TYPE_NAMES, "TECH_TREE_BUILDING_TYPE_NAMES", "Tech Tree", 0, colorMetadata));
+    ChunkInfo techTreeBuildingNames(ChunkType::TECH_TREE_BUILDING_TYPE_NAMES, "TECH_TREE_BUILDING_TYPE_NAMES", "Tech Tree", 512, colorMetadata);
+    techTreeBuildingNames.fields.push_back(FieldInfo("building_type_name", 0, 512, "char16_t[256]", "Building type name (UTF-16)"));
+    registerChunk(techTreeBuildingNames);
 
     // Special chunk
     registerChunk(ChunkInfo(ChunkType::VARIABLE_DATA_CHUNK, "VARIABLE_DATA_CHUNK", "Special", 0, colorMetadata));

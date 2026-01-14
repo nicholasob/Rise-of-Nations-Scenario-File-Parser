@@ -102,6 +102,8 @@ For faster builds on multi-core systems:
 **Windows:**
 ```powershell
 cmake --build build --parallel
+OR GUI:
+cmake --build build-mingw --config Release --target scenario_viewer_gui -j4
 ```
 
 **Linux/macOS:**

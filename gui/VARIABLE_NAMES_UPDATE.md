@@ -156,9 +156,28 @@ The properties panel correctly decodes and displays these strings.
 
 ### Variable-Length Chunks
 For chunks with repeating structures (e.g., PLAYER_DETAILS has multiple 12-byte PlayerEntry structs):
-- The field definitions describe a SINGLE entry
-- The properties panel will show fields for the first entry
-- Full support for array iteration would require GUI enhancements
+- The field definitions describe a SINGLE entry structure
+- The properties panel now displays **ALL elements** in the array
+- Each element is prefixed with an index: `[0]`, `[1]`, `[2]`, etc.
+- The chunk header shows the total element count
+
+**How it works:**
+- If `chunk.data.size > chunkInfo.dataSize`, the GUI automatically detects multiple elements
+- Element count = `chunk.data.size / chunkInfo.dataSize`
+- All fields are repeated for each element with proper offset calculation
+- Field names show as `[0] unit_type_name`, `[1] unit_type_name`, etc.
+
+Supported variable-length chunks include:
+- **TECH_TREE_UNIT_TYPE_NAMES** (512 bytes each): `unit_type_name` (UTF-16)
+- **TECH_TREE_BUILDING_TYPE_NAMES** (512 bytes each): `building_type_name` (UTF-16)
+- **GARRISON_UNIT_NAMES** (512 bytes each): `unit_name` (UTF-16)
+- **PLAYER_DETAILS** (12 bytes each): `player_index`, `player_data_value`, `flags`
+- **RESOURCE_ENTRIES** (8 bytes each): `resource_index`, `value`
+- **FEATURE_DATA** (12 bytes each): mountain/terrain features
+- **LOCATION_DATA** (12 bytes each): waypoint coordinates
+- **COORDINATE_DATA** (8 bytes each): spatial group coordinates
+- **ENTITY_DATA** (16 bytes each): advanced feature entities
+- And many more...
 
 ## How to Use
 
@@ -229,6 +248,24 @@ line_of_sight     | uint32_t        | 780    | 5
 moves             | uint32_t        | 788    | 3
 ```
 
+### Example 4: Tech Tree Unit Type Names (Variable-Length Array)
+When you click on a TECH_TREE_UNIT_TYPE_NAMES chunk with 3 unit types, you'll see:
+```
+Chunk Header:
+  Array Elements: 3 (each 512 bytes)
+
+Field Name               | Type            | Offset | Value
+-------------------------------------------------------------
+[0] unit_type_name       | char16_t[256]   | 0      | Light Infantry
+[1] unit_type_name       | char16_t[256]   | 512    | Heavy Infantry
+[2] unit_type_name       | char16_t[256]   | 1024   | Archer
+```
+
+This automatically displays all 3 elements with:
+- Element index prefix `[0]`, `[1]`, `[2]`
+- Proper offset calculation for each element
+- Decoded UTF-16 strings for each unit type name
+
 ## Benefits
 
 1. **Easier Debugging**: See exactly what each byte represents
@@ -237,20 +274,30 @@ moves             | uint32_t        | 788    | 3
 4. **Reverse Engineering**: Identify unknown fields and their purposes
 5. **Documentation**: Field descriptions serve as inline documentation
 
+## Recent Enhancements
+
+Implemented features:
+1. ✅ **Array Support**: Now displays all entries for variable-length chunks with element indexing
+   - Automatically detects multiple elements based on chunk size
+   - Shows `[0]`, `[1]`, `[2]` prefixes for each array element
+   - Displays total element count in chunk header
+
 ## Future Enhancements
 
 Potential improvements:
 1. **XOR Decryption**: Automatically decrypt encrypted fields (key 0x63637)
 2. **Enum Display**: Show enum names instead of numeric values (e.g., "Red" instead of 0 for colors)
-3. **Array Support**: Display all entries for variable-length chunks, not just the first
-4. **Field Editing**: Allow editing values directly in the properties panel
-5. **Calculated Fields**: Show derived values (e.g., current_health = max_health - damage_taken)
-6. **Hex Editor Sync**: Clicking a field highlights the corresponding bytes in the hex view
+3. **Field Editing**: Allow editing values directly in the properties panel
+4. **Calculated Fields**: Show derived values (e.g., current_health = max_health - damage_taken)
+5. **Hex Editor Sync**: Clicking a field highlights the corresponding bytes in the hex view
+6. **Array Element Grouping**: Add visual separators or collapsible sections between array elements
 
 ## Files Modified
 
-- `gui/chunk_metadata.cpp` - Added detailed field definitions for 30+ chunk types
-- No other files changed - all changes are backward compatible
+- `gui/chunk_metadata.cpp` - Added detailed field definitions for 30+ chunk types, including tech tree name chunks
+- `gui/chunk_properties_widget.cpp` - Implemented automatic array element iteration and display
+- `gui/VARIABLE_NAMES_UPDATE.md` - Updated documentation to reflect array support
+- All changes are backward compatible
 
 ## Build Status
 
