@@ -17,6 +17,7 @@ endif()
 
 #Options
 option(BUILD_CLI "Build CLI version" ON)
+option(BUILD_GUI "Build GUI version" ON)
 option(BUILD_TESTS "Build tests" OFF)
 
 #Compiler warnings
@@ -117,6 +118,11 @@ if(WIN32 AND ZLIB_FOUND)
     endif()
 endif()
 
+# GUI Application
+if(BUILD_GUI)
+    add_subdirectory(gui)
+endif()
+
 # Tests
 if(BUILD_TESTS)
     enable_testing()
@@ -131,6 +137,7 @@ message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "")
 message(STATUS "Targets:")
 message(STATUS "  CLI: ${BUILD_CLI}")
+message(STATUS "  GUI: ${BUILD_GUI}")
 message(STATUS "  Tests: ${BUILD_TESTS}")
 message(STATUS "")
 message(STATUS "Dependencies:")
