@@ -6,10 +6,10 @@
 
 #pragma pack(push, 1)
 struct ScenarioHeader0x6C : public ByteConvertible<ScenarioHeader0x6C> {
-    uint32_t version;         // local_260 - possibly number of chunks or version
+    uint32_t version;             // local_260 - possibly number of chunks or version
     uint32_t magic;               // local_25c - always 0xf00dcafe
 
-    char16_t scenario_name[100];   // local_258 - 200 bytes (100 wchar_t) - wide-char scenario name/desc
+    char16_t scenario_name[100];  // local_258 - 200 bytes (100 wchar_t) - wide-char scenario name/desc
 
     uint32_t player_setting1;     // local_190 = PTR_DAT_00c061ec[0x24]
     uint32_t player_setting2;     // local_18c = PTR_DAT_00c061ec[0x2a]
@@ -81,7 +81,7 @@ static_assert(sizeof(ScenarioHeader0x6C) == 384, "ScenarioHeader must be exactly
 
 //individual trigger data entry (520 bytes each)
 struct TriggerDataEntry0x3 {
-    char16_t trigger_name[256];    // 512 bytes - trigger name/description
+    char16_t trigger_name[256];   // 512 bytes - trigger name/description
     uint32_t encrypted_param1;    // 4 bytes - conditions/timing (is XOR encrypted?)
     uint32_t encrypted_param2;    // 4 bytes - actions/targets (is XOR encrypted?)
     

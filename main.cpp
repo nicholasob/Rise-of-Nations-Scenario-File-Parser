@@ -39,11 +39,6 @@ void PrintUsageHelp();
 void PrintModifyHelp();
 
 int main(int argc, char* argv[]) {
-    static char* fake_argv[] = { argv[0], "rio.scx" };
-
-    argc = 2;
-    argv = fake_argv;
-
     if (argc < 2) {
         PrintUsageHelp();
         return 1;
