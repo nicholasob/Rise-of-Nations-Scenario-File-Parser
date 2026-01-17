@@ -6,11 +6,13 @@
 #include <vector>
 #include <cstddef>
 #include <memory>
+#include <QDateTime>
 
 #include "data_structures.h"
 #include "scenario_editor.h"
 
 class ScenarioModifier;
+class QFileSystemWatcher;
 
 /**
  * @brief Central data model for scenario file
@@ -53,6 +55,8 @@ public:
 
     // High-level editor
     ScenarioEditor* getEditor() { return m_editor.get(); }
+    bool autoReloadEnabled() const { return m_autoReloadEnabled; }
+    void setAutoReloadEnabled(bool enabled) { m_autoReloadEnabled = enabled; }
 
     // Refresh data after modifications
     void refreshFromEditor();
@@ -63,6 +67,10 @@ signals:
     void chunkSelected(const Chunk* chunk);
     void dirtyChanged(bool dirty);
     void errorOccurred(const QString& message);
+    void fileReloaded(const QString& filePath);
+
+private slots:
+    void handleFileChanged(const QString& path);
 
 private:
     QString m_filePath;
@@ -70,10 +78,14 @@ private:
     std::vector<Chunk> m_chunks;
     bool m_dirty;
     std::unique_ptr<ScenarioEditor> m_editor;
+    QFileSystemWatcher* m_fileWatcher;
+    QDateTime m_lastModifiedTime;
+    bool m_autoReloadEnabled;
 
     // Helper methods
     void clearData();
     const Chunk* findChunkAtOffsetRecursive(size_t offset, const Chunk& chunk) const;
+    void updateFileWatcher();
 };
 
 #endif // SCENARIO_DOCUMENT_H

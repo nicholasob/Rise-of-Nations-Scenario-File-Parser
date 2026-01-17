@@ -1,5 +1,6 @@
 #pragma once
 #include "../base/byte_convertible.h"
+#include "../base/chunk_reflection.h"
 #include "../common/common_types.h"
 #include <cstdint>
 
@@ -101,6 +102,10 @@ static_assert(sizeof(MapObjectEntry) == 0x4, "MapObjectEntry must be exactly 4 b
 #pragma pack(push, 1)
 struct MapNameChunk0x51 : public ByteConvertible<MapNameChunk0x51> {
     char16_t map_name[100]; //100 wide characters = 200 bytes, null terminated if shorter than 100 chars (hmmmm)
+
+    BEGIN_FIELD_DESCRIPTORS(MapNameChunk0x51)
+        DESCRIBE_FIELD(char16_t[100], map_name, "UTF-16 map name")
+    END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
 static_assert(sizeof(MapNameChunk0x51) == 0xC8, "MapNameChunk0x51 must be exactly 200 bytes");
@@ -110,8 +115,14 @@ struct MapStructureChunk0xf : public ByteConvertible<MapStructureChunk0xf> {
     // Chunk Data (12 bytes total) - based on assembly analysis at 0x009a8922-0x009a895b:
     // the values are packed as: total_tiles, map_width, map_height
     uint32_t total_tiles;               // Total number of tiles (width × height)
-    uint32_t map_width;                 // Map width in tiles  
+    uint32_t map_width;                 // Map width in tiles
     uint32_t map_height;                // Map height in tiles
+
+    BEGIN_FIELD_DESCRIPTORS(MapStructureChunk0xf)
+        DESCRIBE_FIELD(uint32_t, total_tiles, "Total number of tiles")
+        DESCRIBE_FIELD(uint32_t, map_width, "Map width in tiles")
+        DESCRIBE_FIELD(uint32_t, map_height, "Map height in tiles")
+    END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
 static_assert(sizeof(MapStructureChunk0xf) == 0xC, "MapStructureChunk0xf must be exactly 12 bytes");
@@ -159,6 +170,12 @@ struct TerrainLayoutChunk0x11 : public ByteConvertible<TerrainLayoutChunk0x11> {
             uint32_t height_scaled;         // height * 4
         };
     };
+
+    BEGIN_FIELD_DESCRIPTORS(TerrainLayoutChunk0x11)
+        DESCRIBE_FIELD(uint32_t, scaled_total_tiles, "Scaled map width")
+        DESCRIBE_FIELD(uint32_t, scaled_width, "Scaled map height")
+        DESCRIBE_FIELD(uint32_t, scaled_height, "Total scaled tiles")
+    END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
 static_assert(sizeof(TerrainLayoutChunk0x11) == 0xC, "TerrainLayoutChunk0x11 must be exactly 12 bytes");
@@ -221,6 +238,10 @@ struct MapObjectChunk0x59 : public VariableLengthArrayChunk<MapObjectChunk0x59, 
 #pragma pack(push, 1)
 struct MapMetadataChunk0x69 : public ByteConvertible<MapMetadataChunk0x69> {
     uint32_t tile_count;
+
+    BEGIN_FIELD_DESCRIPTORS(MapMetadataChunk0x69)
+        DESCRIBE_FIELD(uint32_t, tile_count, "Tile count")
+    END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
 static_assert(sizeof(MapMetadataChunk0x69) == 0x4, "MapMetadataChunk0x69 must be exactly 4 bytes");

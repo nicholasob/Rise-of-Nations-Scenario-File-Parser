@@ -4,6 +4,7 @@
 #include "chunk_serializer.h"
 #include "chunk_validator.h"
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <fstream>
 #include <stdexcept>
 
@@ -11,7 +12,11 @@ ScenarioDocument::ScenarioDocument(QObject *parent)
     : QObject(parent)
     , m_dirty(false)
     , m_editor(nullptr)
+    , m_fileWatcher(new QFileSystemWatcher(this))
+    , m_autoReloadEnabled(true)
 {
+    connect(m_fileWatcher, &QFileSystemWatcher::fileChanged,
+            this, &ScenarioDocument::handleFileChanged);
 }
 
 bool ScenarioDocument::loadFile(const QString& filePath)
@@ -37,6 +42,7 @@ bool ScenarioDocument::loadFile(const QString& filePath)
         // Store file path
         m_filePath = filePath;
         m_dirty = false;
+        updateFileWatcher();
 
         emit dataLoaded();
         return true;
@@ -206,6 +212,10 @@ void ScenarioDocument::clearData()
 {
     m_data.clear();
     m_chunks.clear();
+    if (m_fileWatcher) {
+        m_fileWatcher->removePaths(m_fileWatcher->files());
+    }
+    m_lastModifiedTime = QDateTime();
     m_filePath.clear();
     m_dirty = false;
     m_editor.reset();
@@ -228,4 +238,49 @@ const Chunk* ScenarioDocument::findChunkAtOffsetRecursive(size_t offset, const C
     }
 
     return nullptr;
+}
+
+void ScenarioDocument::handleFileChanged(const QString& path)
+{
+    if (!m_autoReloadEnabled || m_dirty) {
+        return;
+    }
+
+    QFileInfo info(path);
+    if (!info.exists()) {
+        return;
+    }
+
+    const auto modified = info.lastModified();
+    if (modified == m_lastModifiedTime) {
+        return; // Ignore duplicate notifications for the same timestamp
+    }
+
+    // Persist timestamp before reload to prevent recursive triggers
+    m_lastModifiedTime = modified;
+
+    if (loadFile(path)) {
+        emit fileReloaded(path);
+    }
+}
+
+void ScenarioDocument::updateFileWatcher()
+{
+    if (!m_fileWatcher) {
+        return;
+    }
+
+    m_fileWatcher->removePaths(m_fileWatcher->files());
+
+    if (m_filePath.isEmpty()) {
+        return;
+    }
+
+    QFileInfo info(m_filePath);
+    if (!info.exists()) {
+        return;
+    }
+
+    m_lastModifiedTime = info.lastModified();
+    m_fileWatcher->addPath(info.absoluteFilePath());
 }

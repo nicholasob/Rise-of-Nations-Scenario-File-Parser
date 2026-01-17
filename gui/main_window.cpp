@@ -9,6 +9,7 @@
 #include <QToolBar>
 #include <QStatusBar>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QSettings>
 #include <QCloseEvent>
@@ -38,6 +39,13 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::handleDocumentDirtyChanged);
     connect(m_document.get(), &ScenarioDocument::dataLoaded,
             this, &MainWindow::updateWindowTitle);
+    connect(m_document.get(), &ScenarioDocument::fileReloaded,
+            this, [this](const QString& path) {
+                QFileInfo info(path);
+                statusBar()->showMessage(
+                    tr("File changed on disk, reloaded: %1").arg(info.fileName()),
+                    4000);
+            });
     connect(m_document.get(), &ScenarioDocument::errorOccurred,
             [this](const QString& msg) {
                 QMessageBox::critical(this, "Error", msg);
@@ -136,6 +144,16 @@ void MainWindow::setupLayout()
     m_propertiesWidget = new ChunkPropertiesWidget(m_document.get(), this);
     m_rightTabs->addTab(m_propertiesWidget, "Properties");
 
+    // Optional dual view: hex editor and properties side-by-side
+    m_dualViewSplitter = new QSplitter(Qt::Horizontal, this);
+    m_hexEditorDual = new HexEditorWidget(m_document.get(), m_dualViewSplitter);
+    m_propertiesWidgetDual = new ChunkPropertiesWidget(m_document.get(), m_dualViewSplitter);
+    m_dualViewSplitter->addWidget(m_hexEditorDual);
+    m_dualViewSplitter->addWidget(m_propertiesWidgetDual);
+    m_dualViewSplitter->setStretchFactor(0, 6);
+    m_dualViewSplitter->setStretchFactor(1, 4);
+    m_rightTabs->addTab(m_dualViewSplitter, "Hex + Properties");
+
     m_mainSplitter->addWidget(m_rightTabs);
 
     // Set splitter sizes (30% tree, 70% editor)
@@ -149,6 +167,10 @@ void MainWindow::setupLayout()
             m_hexEditor, &HexEditorWidget::handleChunkSelected);
     connect(m_chunkTree, &ChunkTreeWidget::chunkSelected,
             m_propertiesWidget, &ChunkPropertiesWidget::displayChunk);
+    connect(m_chunkTree, &ChunkTreeWidget::chunkSelected,
+            m_hexEditorDual, &HexEditorWidget::handleChunkSelected);
+    connect(m_chunkTree, &ChunkTreeWidget::chunkSelected,
+            m_propertiesWidgetDual, &ChunkPropertiesWidget::displayChunk);
 }
 
 void MainWindow::openFile()

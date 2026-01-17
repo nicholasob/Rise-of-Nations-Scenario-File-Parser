@@ -1,4 +1,8 @@
 #include "chunk_metadata.h"
+#include "../include/base/chunk_reflection.h"
+#include "../include/chunks/player_chunks.h"
+#include "../include/chunks/map_chunks.h"
+#include "../include/chunks/unit_chunks.h"
 #include <QColor>
 
 ChunkMetadata& ChunkMetadata::instance()
@@ -63,29 +67,37 @@ void ChunkMetadata::registerChunks()
     registerChunk(ChunkInfo(ChunkType::MAP_METADATA_HEADER, "MAP_METADATA_HEADER", "Container", 0, colorContainer, true));
 
     // Map chunks
-    ChunkInfo mapStructure(ChunkType::MAP_STRUCTURE, "MAP_STRUCTURE", "Map", 12, colorMap);
-    mapStructure.fields.push_back(FieldInfo("width", 0, 4, "uint32_t", "Map width in tiles"));
-    mapStructure.fields.push_back(FieldInfo("height", 4, 4, "uint32_t", "Map height in tiles"));
-    mapStructure.fields.push_back(FieldInfo("total_tiles", 8, 4, "uint32_t", "Total number of tiles"));
-    registerChunk(mapStructure);
+    registerReflectedChunk<MapStructureChunk0xf>(
+        ChunkType::MAP_STRUCTURE,
+        "MAP_STRUCTURE",
+        "Map",
+        sizeof(MapStructureChunk0xf),
+        colorMap
+    );
 
     ChunkInfo tileProps(ChunkType::TILE_PROPERTIES, "TILE_PROPERTIES", "Map", 0, colorMap);
     tileProps.fields.push_back(FieldInfo("properties", 0, 4, "uint32_t[]", "4 bytes per tile"));
     registerChunk(tileProps);
 
-    ChunkInfo terrainLayout(ChunkType::TERRAIN_LAYOUT_DATA, "TERRAIN_LAYOUT_DATA", "Map", 12, colorMap);
-    terrainLayout.fields.push_back(FieldInfo("scaled_width", 0, 4, "uint32_t", "Scaled map width"));
-    terrainLayout.fields.push_back(FieldInfo("scaled_height", 4, 4, "uint32_t", "Scaled map height"));
-    terrainLayout.fields.push_back(FieldInfo("scaled_tiles", 8, 4, "uint32_t", "Total scaled tiles"));
-    registerChunk(terrainLayout);
+    registerReflectedChunk<TerrainLayoutChunk0x11>(
+        ChunkType::TERRAIN_LAYOUT_DATA,
+        "TERRAIN_LAYOUT_DATA",
+        "Map",
+        sizeof(TerrainLayoutChunk0x11),
+        colorMap
+    );
 
     ChunkInfo terrainType(ChunkType::TERRAIN_TYPE, "TERRAIN_TYPE", "Map", 0, colorMap);
     terrainType.fields.push_back(FieldInfo("terrain_type", 0, 2, "uint16_t[]", "2 bytes per position"));
     registerChunk(terrainType);
 
-    ChunkInfo mapName(ChunkType::MAP_NAME_DATA, "MAP_NAME_DATA", "Map", 200, colorMap);
-    mapName.fields.push_back(FieldInfo("map_name", 0, 200, "char16_t[100]", "UTF-16 map name"));
-    registerChunk(mapName);
+    registerReflectedChunk<MapNameChunk0x51>(
+        ChunkType::MAP_NAME_DATA,
+        "MAP_NAME_DATA",
+        "Map",
+        sizeof(MapNameChunk0x51),
+        colorMap
+    );
 
     registerChunk(ChunkInfo(ChunkType::MAP_OBJECTS, "MAP_OBJECTS", "Map", 0, colorMap));
     registerChunk(ChunkInfo(ChunkType::OBJECT_GROUPS, "OBJECT_GROUPS", "Map", 0, colorMap));
@@ -123,58 +135,40 @@ void ChunkMetadata::registerChunks()
     registerChunk(metadata);
 
     // Player chunks
-    ChunkInfo activePlayerCount(ChunkType::ACTIVE_PLAYER_COUNT, "ACTIVE_PLAYER_COUNT", "Player", 4, colorPlayer);
-    activePlayerCount.fields.push_back(FieldInfo("player_count", 0, 4, "uint32_t", "Number of active players"));
-    registerChunk(activePlayerCount);
+    registerReflectedChunk<PlayerCountChunk0x2a>(
+        ChunkType::ACTIVE_PLAYER_COUNT,
+        "ACTIVE_PLAYER_COUNT",
+        "Player",
+        sizeof(PlayerCountChunk0x2a),
+        colorPlayer
+    );
 
     // PlayerEntry (12 bytes each) - variable count
-    ChunkInfo playerDetails(ChunkType::PLAYER_DETAILS, "PLAYER_DETAILS", "Player", 0, colorPlayer);
-    playerDetails.fields.push_back(FieldInfo("player_index", 0, 4, "uint32_t", "Player slot (0-7)"));
-    playerDetails.fields.push_back(FieldInfo("player_data_value", 4, 4, "uint32_t", "Data from game memory"));
-    playerDetails.fields.push_back(FieldInfo("flags", 8, 4, "uint32_t", "Combined status flags"));
-    registerChunk(playerDetails);
+    registerReflectedChunk<PlayerEntry>(
+        ChunkType::PLAYER_DETAILS,
+        "PLAYER_DETAILS",
+        "Player",
+        sizeof(PlayerEntry),
+        colorPlayer
+    );
 
     // PlayerPropertiesChunk0x6B (236 bytes each)
-    ChunkInfo playerProps(ChunkType::PLAYER_PROPERTIES, "PLAYER_PROPERTIES", "Player", 236, colorPlayer);
-    playerProps.fields.push_back(FieldInfo("player_index", 0, 4, "uint32_t", "Player slot (0-7)"));
-    playerProps.fields.push_back(FieldInfo("nation_index", 4, 4, "uint32_t", "Nation the player is playing"));
-    playerProps.fields.push_back(FieldInfo("player_flags", 8, 4, "uint32_t", "AI/misc settings flags"));
-    playerProps.fields.push_back(FieldInfo("field_0x150", 12, 4, "int32_t", "Field from offset 0x150"));
-    playerProps.fields.push_back(FieldInfo("field_0x14c", 16, 4, "uint32_t", "Field from offset 0x14c"));
-    playerProps.fields.push_back(FieldInfo("player_name", 20, 200, "char16_t[100]", "Player name (UTF-16)"));
-    playerProps.fields.push_back(FieldInfo("control_field", 220, 4, "uint32_t", "0=computer, 4=human"));
-    playerProps.fields.push_back(FieldInfo("remaining_field2", 224, 4, "uint32_t", "Additional field"));
-    playerProps.fields.push_back(FieldInfo("color_index", 228, 1, "uint8_t", "Color (0=red, 1=blue, etc)"));
-    playerProps.fields.push_back(FieldInfo("color_hex_1", 229, 1, "uint8_t", "Color component 1"));
-    playerProps.fields.push_back(FieldInfo("color_hex_2", 230, 1, "uint8_t", "Color component 2"));
-    playerProps.fields.push_back(FieldInfo("color_hex_3", 231, 1, "uint8_t", "Color component 3"));
-    playerProps.fields.push_back(FieldInfo("difficulty", 232, 4, "uint32_t", "0-5 (Easiest to Toughest)"));
-    registerChunk(playerProps);
+    registerReflectedChunk<PlayerPropertiesChunk0x6B>(
+        ChunkType::PLAYER_PROPERTIES,
+        "PLAYER_PROPERTIES",
+        "Player",
+        sizeof(PlayerPropertiesChunk0x6B),
+        colorPlayer
+    );
 
     // Unit/Formation chunks - FormationChunk0x53 (580 bytes)
-    ChunkInfo formationProps(ChunkType::FORMATION_PROPERTIES, "FORMATION_PROPERTIES", "Units", 580, colorUnits);
-    formationProps.fields.push_back(FieldInfo("player_index", 0, 4, "uint32_t", "Player owning formation (0-7)"));
-    formationProps.fields.push_back(FieldInfo("formation_unit_id", 4, 4, "uint32_t", "Formation unit pointer/ID"));
-    formationProps.fields.push_back(FieldInfo("ll_prev_group_member", 8, 4, "int32_t", "Linked list prev (-1 if none)"));
-    formationProps.fields.push_back(FieldInfo("ll_next_group_member", 12, 4, "int32_t", "Linked list next (-1 if none)"));
-    formationProps.fields.push_back(FieldInfo("field_0x10", 16, 4, "uint32_t", "Field at offset 0x10"));
-    formationProps.fields.push_back(FieldInfo("field_0x14", 20, 4, "uint32_t", "Field at offset 0x14"));
-    formationProps.fields.push_back(FieldInfo("field_0x18", 24, 4, "uint32_t", "Field at offset 0x18"));
-    formationProps.fields.push_back(FieldInfo("formation_flags", 28, 4, "uint32_t", "Visibility/state flags"));
-    formationProps.fields.push_back(FieldInfo("formation_type", 32, 2, "uint16_t", "Formation type identifier"));
-    formationProps.fields.push_back(FieldInfo("formation_behavior1", 34, 1, "uint8_t", "Formation behavior 1"));
-    formationProps.fields.push_back(FieldInfo("formation_behavior2", 35, 1, "uint8_t", "Formation behavior 2"));
-    formationProps.fields.push_back(FieldInfo("formation_special_flag", 36, 1, "uint8_t", "Special flag"));
-    formationProps.fields.push_back(FieldInfo("padding_byte", 37, 1, "uint8_t", "Padding"));
-    formationProps.fields.push_back(FieldInfo("formation_unit_name", 38, 514, "char16_t[257]", "Unit name (UTF-16)"));
-    formationProps.fields.push_back(FieldInfo("position_x", 552, 4, "uint32_t", "X position"));
-    formationProps.fields.push_back(FieldInfo("position_y", 556, 4, "uint32_t", "Y position"));
-    formationProps.fields.push_back(FieldInfo("damage_taken", 560, 4, "uint32_t", "max_health - current_health"));
-    formationProps.fields.push_back(FieldInfo("field_after_name1", 564, 4, "uint32_t", "Field after name 1"));
-    formationProps.fields.push_back(FieldInfo("field_after_name2", 568, 4, "uint32_t", "Field after name 2"));
-    formationProps.fields.push_back(FieldInfo("group_id", 572, 4, "uint32_t", "Group ID (-1 if none)"));
-    formationProps.fields.push_back(FieldInfo("unit_index_in_group", 576, 4, "uint32_t", "Index in group (-1 if none)"));
-    registerChunk(formationProps);
+    registerReflectedChunk<FormationChunk0x53>(
+        ChunkType::FORMATION_PROPERTIES,
+        "FORMATION_PROPERTIES",
+        "Units",
+        sizeof(FormationChunk0x53),
+        colorUnits
+    );
 
     // BuildingPropertiesChunk0x54 (548 bytes)
     ChunkInfo buildingProps(ChunkType::BUILDING_GROUP_PROPERTIES, "BUILDING_GROUP_PROPERTIES", "Units", 548, colorUnits);
@@ -432,21 +426,33 @@ void ChunkMetadata::registerChunks()
     registerChunk(editorResearch);
 
     // Tech tree chunks
-    ChunkInfo techTreeUnitCount(ChunkType::TECH_TREE_UNIT_TYPE_COUNT, "TECH_TREE_UNIT_TYPE_COUNT", "Tech Tree", 4, colorMetadata);
-    techTreeUnitCount.fields.push_back(FieldInfo("count", 0, 4, "uint32_t", "Number of unit types"));
-    registerChunk(techTreeUnitCount);
+    registerReflectedChunk<TechTreeUnitTypeCountChunk0x27>(
+        ChunkType::TECH_TREE_UNIT_TYPE_COUNT,
+        "TECH_TREE_UNIT_TYPE_COUNT",
+        "Tech Tree",
+        sizeof(TechTreeUnitTypeCountChunk0x27),
+        colorMetadata
+    );
 
-    ChunkInfo techTreeUnitNames(ChunkType::TECH_TREE_UNIT_TYPE_NAMES, "TECH_TREE_UNIT_TYPE_NAMES", "Tech Tree", 512, colorMetadata);
-    techTreeUnitNames.fields.push_back(FieldInfo("unit_type_name", 0, 512, "char16_t[256]", "Unit type name (UTF-16)"));
-    registerChunk(techTreeUnitNames);
+    registerReflectedChunk<TechTreeTypeName>(
+        ChunkType::TECH_TREE_UNIT_TYPE_NAMES,
+        "TECH_TREE_UNIT_TYPE_NAMES",
+        "Tech Tree",
+        sizeof(TechTreeTypeName),
+        colorMetadata
+    );
 
     ChunkInfo techTreeBuildingCount(ChunkType::TECH_TREE_BUILDING_TYPE_COUNT, "TECH_TREE_BUILDING_TYPE_COUNT", "Tech Tree", 4, colorMetadata);
     techTreeBuildingCount.fields.push_back(FieldInfo("count", 0, 4, "uint32_t", "Number of building types"));
     registerChunk(techTreeBuildingCount);
 
-    ChunkInfo techTreeBuildingNames(ChunkType::TECH_TREE_BUILDING_TYPE_NAMES, "TECH_TREE_BUILDING_TYPE_NAMES", "Tech Tree", 512, colorMetadata);
-    techTreeBuildingNames.fields.push_back(FieldInfo("building_type_name", 0, 512, "char16_t[256]", "Building type name (UTF-16)"));
-    registerChunk(techTreeBuildingNames);
+    registerReflectedChunk<TechTreeTypeName>(
+        ChunkType::TECH_TREE_BUILDING_TYPE_NAMES,
+        "TECH_TREE_BUILDING_TYPE_NAMES",
+        "Tech Tree",
+        sizeof(TechTreeTypeName),
+        colorMetadata
+    );
 
     // Special chunk
     registerChunk(ChunkInfo(ChunkType::VARIABLE_DATA_CHUNK, "VARIABLE_DATA_CHUNK", "Special", 0, colorMetadata));
@@ -498,4 +504,25 @@ std::string ChunkMetadata::getCategory(ChunkType type) const
 bool ChunkMetadata::isRegistered(ChunkType type) const
 {
     return m_chunkRegistry.find(type) != m_chunkRegistry.end();
+}
+
+std::vector<FieldInfo> ChunkMetadata::convertDescriptors(const std::vector<FieldDescriptor>& descriptors)
+{
+    std::vector<FieldInfo> fields;
+    fields.reserve(descriptors.size());
+    for (const auto& desc : descriptors) {
+        fields.emplace_back(desc.name, desc.offset, desc.size, desc.type, desc.description);
+    }
+    return fields;
+}
+
+template<typename T>
+void ChunkMetadata::registerReflectedChunk(ChunkType type, const std::string& name,
+                                           const std::string& category, size_t size, QColor color)
+{
+    static_assert(has_reflection_v<T>, "Type must have reflection metadata (use BEGIN_FIELD_DESCRIPTORS macro)");
+
+    ChunkInfo info(type, name, category, size, color);
+    info.fields = convertDescriptors(T::getFieldDescriptors());
+    registerChunk(info);
 }

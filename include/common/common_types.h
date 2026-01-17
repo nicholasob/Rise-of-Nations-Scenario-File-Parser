@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "../base/chunk_reflection.h"
 
 //common color structure
 #pragma pack(push, 1)
@@ -7,6 +8,12 @@ struct RGBColor {
     uint8_t r;
     uint8_t g;
     uint8_t b;
+
+    BEGIN_FIELD_DESCRIPTORS(RGBColor)
+        DESCRIBE_FIELD(uint8_t, r, "Red component (0-255)")
+        DESCRIBE_FIELD(uint8_t, g, "Green component (0-255)")
+        DESCRIBE_FIELD(uint8_t, b, "Blue component (0-255)")
+    END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
 static_assert(sizeof(RGBColor) == 0x3, "RGBColor must be exactly 3 bytes");
@@ -28,6 +35,10 @@ struct Coordinate {
 #pragma pack(push, 1)
 struct TechTreeTypeName {
     char16_t name[256];
+
+    BEGIN_FIELD_DESCRIPTORS(TechTreeTypeName)
+        DESCRIBE_FIELD(char16_t[256], name, "Type name (UTF-16)")
+    END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
 static_assert(sizeof(TechTreeTypeName) == 0x200, "TechTreeTypeName must be exactly 512 bytes");

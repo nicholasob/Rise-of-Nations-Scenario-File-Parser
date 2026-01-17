@@ -3,9 +3,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <cstdint>
-
-//forward declaration
-struct Chunk;
+#include "chunk_base.h"
 
 //base class for converting byte data to structs
 template<typename T>

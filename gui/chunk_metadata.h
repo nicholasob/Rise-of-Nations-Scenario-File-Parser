@@ -73,6 +73,14 @@ private:
     void registerChunks();
     void registerChunk(const ChunkInfo& info);
 
+    // Template method for auto-registering reflected chunks
+    template<typename T>
+    void registerReflectedChunk(ChunkType type, const std::string& name,
+                                const std::string& category, size_t size, QColor color);
+
+    // Convert FieldDescriptor to FieldInfo
+    static std::vector<FieldInfo> convertDescriptors(const std::vector<struct FieldDescriptor>& descriptors);
+
     // Category colors
     QColor colorMap;
     QColor colorPlayer;

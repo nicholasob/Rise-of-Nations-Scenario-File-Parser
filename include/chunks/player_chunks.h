@@ -1,5 +1,6 @@
 #pragma once
 #include "../base/byte_convertible.h"
+#include "../base/chunk_reflection.h"
 #include "../common/common_types.h"
 #include <cstdint>
 
@@ -8,6 +9,12 @@ struct PlayerEntry {
     uint32_t player_index;      // player slot (0-7)
     uint32_t player_data_value; // data from game memory array
     uint32_t flags;             // combined status flags
+
+    BEGIN_FIELD_DESCRIPTORS(PlayerEntry)
+        DESCRIBE_FIELD(uint32_t, player_index, "Player slot (0-7)")
+        DESCRIBE_FIELD(uint32_t, player_data_value, "Data from game memory")
+        DESCRIBE_FIELD(uint32_t, flags, "Combined status flags")
+    END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
 static_assert(sizeof(PlayerEntry) == 0xC, "PlayerEntry must be exactly 12 bytes");
@@ -58,8 +65,24 @@ struct PlayerPropertiesChunk0x6B : public ByteConvertible<PlayerPropertiesChunk0
         5 = Toughest
     */
     uint32_t difficulty;            // +0xE8: 4 bytes
-    
+
     //Total amount of bytes: 20 + 200 + 16 = 236 bytes exactly
+
+    BEGIN_FIELD_DESCRIPTORS(PlayerPropertiesChunk0x6B)
+        DESCRIBE_FIELD(uint32_t, player_index, "Player slot (0-7)")
+        DESCRIBE_FIELD(uint32_t, nation_index, "Nation the player is playing")
+        DESCRIBE_FIELD(uint32_t, player_flags, "AI/misc settings flags")
+        DESCRIBE_FIELD(int32_t, field_0x150, "Field from offset 0x150")
+        DESCRIBE_FIELD(uint32_t, field_0x14c, "Field from offset 0x14c")
+        DESCRIBE_FIELD(char16_t[100], player_name, "Player name (UTF-16)")
+        DESCRIBE_FIELD(uint32_t, control_field, "0=computer, 4=human")
+        DESCRIBE_FIELD(uint32_t, remaining_field2, "Additional field")
+        DESCRIBE_FIELD(uint8_t, color_index, "Color (0=red, 1=blue, etc)")
+        DESCRIBE_FIELD(uint8_t, color_hex_1, "Color component 1")
+        DESCRIBE_FIELD(uint8_t, color_hex_2, "Color component 2")
+        DESCRIBE_FIELD(uint8_t, color_hex_3, "Color component 3")
+        DESCRIBE_FIELD(uint32_t, difficulty, "0-5 (Easiest to Toughest)")
+    END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
 static_assert(sizeof(PlayerPropertiesChunk0x6B) == 236, "PlayerPropertiesChunk0x6B must be exactly 236 bytes");
@@ -82,6 +105,10 @@ namespace PlayerFlags {
 #pragma pack(push, 1)
 struct PlayerCountChunk0x2a : public ByteConvertible<PlayerCountChunk0x2a> {
     uint32_t player_count; //number of players
+
+    BEGIN_FIELD_DESCRIPTORS(PlayerCountChunk0x2a)
+        DESCRIBE_FIELD(uint32_t, player_count, "Number of active players")
+    END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
 static_assert(sizeof(PlayerCountChunk0x2a) == 0x4, "PlayerCountChunk0x2a must be exactly 4 bytes");

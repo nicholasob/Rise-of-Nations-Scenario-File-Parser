@@ -52,6 +52,9 @@ private:
     QTabWidget *m_rightTabs;
     HexEditorWidget *m_hexEditor;
     ChunkPropertiesWidget *m_propertiesWidget;
+    QSplitter *m_dualViewSplitter;
+    HexEditorWidget *m_hexEditorDual;
+    ChunkPropertiesWidget *m_propertiesWidgetDual;
 
     // Actions
     QAction *m_openAction;
