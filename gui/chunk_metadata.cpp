@@ -323,7 +323,7 @@ void ChunkMetadata::registerChunks()
 
     // Map resources chunks
     ChunkInfo resourcesCount(ChunkType::MAP_RESOURCES_COUNT, "MAP_RESOURCES_COUNT", "Map Resources", 4, colorResource);
-    resourcesCount.fields.push_back(FieldInfo("resource_count", 0, 4, "uint32_t", "Number of active map resources"));
+    resourcesCount.fields.push_back(FieldInfo("map_resource_count", 0, 4, "uint32_t", "Number of active map resources"));
     registerChunk(resourcesCount);
 
     // MapResourceData0x4 (520 bytes each)
