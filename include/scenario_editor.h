@@ -17,6 +17,7 @@ private:
     std::vector<Chunk> workingChunks;
     bool modified;
     bool loaded;
+    std::string lastError;
     
 public:
     ScenarioEditor() : modified(false), loaded(false) {}
@@ -93,4 +94,9 @@ public:
      * mark the scenario as modified  - should be  called automatically by ScenarioModifier
      */
     void markModified() { modified = true; }
+
+    /**
+     * Retrieve the last error message from loading/saving operations.
+     */
+    const std::string& GetLastError() const { return lastError; }
 };

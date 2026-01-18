@@ -109,3 +109,34 @@ void ChunkTreeWidget::onItemClicked(QTreeWidgetItem *item, int column)
         emit chunkSelected(chunk);
     }
 }
+
+void ChunkTreeWidget::highlightChunk(const Chunk* chunk)
+{
+    if (!chunk) {
+        return;
+    }
+    QTreeWidgetItem* item = findItemByOffset(chunk->file_offset);
+    if (item) {
+        m_tree->setCurrentItem(item);
+        m_tree->scrollToItem(item, QAbstractItemView::PositionAtCenter);
+    }
+}
+
+QTreeWidgetItem* ChunkTreeWidget::findItemByOffset(size_t offset, QTreeWidgetItem *parent) const
+{
+    const int childCount = parent ? parent->childCount() : m_tree->topLevelItemCount();
+    for (int i = 0; i < childCount; ++i) {
+        QTreeWidgetItem* item = parent ? parent->child(i) : m_tree->topLevelItem(i);
+        if (!item) continue;
+        size_t itemOffset = item->data(0, Qt::UserRole).value<size_t>();
+        if (itemOffset == offset) {
+            return item;
+        }
+        if (item->childCount() > 0) {
+            if (QTreeWidgetItem* found = findItemByOffset(offset, item)) {
+                return found;
+            }
+        }
+    }
+    return nullptr;
+}

@@ -53,6 +53,11 @@ void ChunkPropertiesWidget::clear()
     m_table->setRowCount(0);
 }
 
+void ChunkPropertiesWidget::setFieldChanges(const QVector<FieldChange>& changes)
+{
+    m_fieldChanges = changes;
+}
+
 void ChunkPropertiesWidget::displayHeader(const Chunk* chunk)
 {
     auto& metadata = ChunkMetadata::instance();
@@ -187,6 +192,17 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
                 if (!field.description.empty()) {
                     valueItem->setToolTip(QString::fromStdString(field.description));
                 }
+                QString oldVal;
+                QString newVal;
+                if (isFieldChanged(chunk, absoluteOffset, field.size, oldVal, newVal)) {
+                    valueItem->setBackground(QBrush(QColor(255, 248, 200))); // soft yellow
+                    QString tip = valueItem->toolTip();
+                    if (!tip.isEmpty()) {
+                        tip += "\n";
+                    }
+                    tip += QString("Changed: %1 -> %2").arg(oldVal, newVal);
+                    valueItem->setToolTip(tip);
+                }
                 m_table->setItem(rowIdx, 3, valueItem);
             }
         }
@@ -262,7 +278,35 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
             if (!field.description.empty()) {
                 valueItem->setToolTip(QString::fromStdString(field.description));
             }
+            QString oldVal;
+            QString newVal;
+            if (isFieldChanged(chunk, field.offset, field.size, oldVal, newVal)) {
+                valueItem->setBackground(QBrush(QColor(255, 248, 200))); // soft yellow
+                QString tip = valueItem->toolTip();
+                if (!tip.isEmpty()) {
+                    tip += "\n";
+                }
+                tip += QString("Changed: %1 -> %2").arg(oldVal, newVal);
+                valueItem->setToolTip(tip);
+            }
             m_table->setItem(i, 3, valueItem);
         }
     }
+}
+
+bool ChunkPropertiesWidget::isFieldChanged(const Chunk* chunk, size_t absoluteOffset, size_t size, QString& oldVal, QString& newVal) const
+{
+    const qulonglong start = static_cast<qulonglong>(chunk->file_offset + absoluteOffset);
+    const qulonglong end = start + static_cast<qulonglong>(size);
+
+    for (const auto& change : m_fieldChanges) {
+        const qulonglong changeStart = change.offset;
+        const qulonglong changeEnd = change.offset + change.length;
+        if (start < changeEnd && end > changeStart) {
+            oldVal = change.oldValue;
+            newVal = change.newValue;
+            return true;
+        }
+    }
+    return false;
 }

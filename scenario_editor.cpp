@@ -6,10 +6,12 @@
 #include <iostream>
 
 bool ScenarioEditor::LoadScenario(const std::string& filePath) {
+    lastError.clear();
     //open the file
     std::ifstream file(filePath, std::ios::binary);
     if(!file) {
-        std::cerr << "Failed to open file: " << filePath << std::endl;
+        lastError = "Failed to open file: " + filePath;
+        std::cerr << lastError << std::endl;
         return false;
     }
     
@@ -18,7 +20,8 @@ bool ScenarioEditor::LoadScenario(const std::string& filePath) {
     file.close();
     
     if(fileData.empty()) {
-        std::cerr << "File is empty: " << filePath << std::endl;
+        lastError = "File is empty: " + filePath;
+        std::cerr << lastError << std::endl;
         return false;
     }
     
@@ -29,7 +32,8 @@ bool ScenarioEditor::LoadScenario(const std::string& filePath) {
     std::vector<uint8_t> decompressed;
     if(GzipHelper::isGzip(fileData)) {
         if(!GzipHelper::decompressGzip(fileData, decompressed)) {
-            std::cerr << "Failed to decompress file: " << filePath << std::endl;
+            lastError = "Failed to decompress file (gzip): " + filePath;
+            std::cerr << lastError << std::endl;
             return false;
         }
     }
@@ -51,7 +55,8 @@ bool ScenarioEditor::LoadScenario(const std::string& filePath) {
         }
     }
     catch (const std::exception& e) {
-        std::cerr << "Error parsing file: " << e.what() << std::endl;
+        lastError = std::string("Error parsing file: ") + e.what();
+        std::cerr << lastError << std::endl;
         workingChunks.clear();
         originalDecompressedData.clear();
         originalCompressedData.clear();
@@ -82,7 +87,8 @@ ScenarioModifier ScenarioEditor::GetModifier() {
 
 bool ScenarioEditor::Save(const std::string& outputPath, bool compress) {
     if(!loaded) {
-        std::cerr << "No scenario loaded!" << std::endl;
+        lastError = "No scenario loaded!";
+        std::cerr << lastError << std::endl;
         return false;
     }
     
@@ -93,7 +99,8 @@ bool ScenarioEditor::Save(const std::string& outputPath, bool compress) {
     
     //validate before saving - everything must be correct unless we want RoN to crash
     if(!Validate()) {
-        std::cerr << "Validation failed, cannot save" << std::endl;
+        lastError = "Validation failed, cannot save";
+        std::cerr << lastError << std::endl;
         return false;
     }
     
@@ -103,7 +110,8 @@ bool ScenarioEditor::Save(const std::string& outputPath, bool compress) {
         serialized = ChunkSerializer::SerializeChunks(workingChunks);
     }
     catch (const std::exception& e) {
-        std::cerr << "Error serializing chunks: " << e.what() << std::endl;
+        lastError = std::string("Error serializing chunks: ") + e.what();
+        std::cerr << lastError << std::endl;
         return false;
     }
     
@@ -111,7 +119,8 @@ bool ScenarioEditor::Save(const std::string& outputPath, bool compress) {
     std::vector<uint8_t> outputData;
     if(compress) {
         if (!GzipHelper::compressGzip(serialized, outputData)) {
-            std::cerr << "Failed to compress data" << std::endl;
+            lastError = "Failed to compress data";
+            std::cerr << lastError << std::endl;
             return false;
         }
     }
@@ -148,7 +157,8 @@ bool ScenarioEditor::Save(const std::string& outputPath, bool compress) {
 
 bool ScenarioEditor::Save(bool compress) {
     if(loadedFilePath.empty()) {
-        std::cerr << "No file path specified" << std::endl;
+        lastError = "No file path specified";
+        std::cerr << lastError << std::endl;
         return false;
     }
     return Save(loadedFilePath, compress);

@@ -26,6 +26,12 @@ HexEditorWidget::HexEditorWidget(ScenarioDocument *document, QWidget *parent)
             this, &HexEditorWidget::refresh);
     connect(m_document, &ScenarioDocument::dataChanged,
             this, &HexEditorWidget::refresh);
+    connect(m_document, &ScenarioDocument::fileReloadDiff,
+            this, &HexEditorWidget::showDiffRanges);
+    connect(m_document, &ScenarioDocument::dataLoaded,
+            this, &HexEditorWidget::clearDiffHighlight);
+    connect(m_document, &ScenarioDocument::fileReloadByteChanges,
+            this, &HexEditorWidget::showByteChanges);
 }
 
 void HexEditorWidget::setupUI()
@@ -93,6 +99,8 @@ void HexEditorWidget::setupUI()
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
     m_table->setMouseTracking(true); // Enable hover events
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers); // Read-only for minimal build
+    connect(m_table, &QTableWidget::cellClicked,
+            this, &HexEditorWidget::handleCellClicked);
 
     // Disabled for minimal build - re-enable for editing support
     // connect(m_table, &QTableWidget::cellChanged,
@@ -103,6 +111,7 @@ void HexEditorWidget::setupUI()
 
 void HexEditorWidget::refresh()
 {
+    m_byteChanges.clear(); // reset tooltips/highlights on manual reloads
     populateTable();
 }
 
@@ -150,10 +159,21 @@ void HexEditorWidget::updateRow(int row)
             item->setText(byteToHex(b));
             item->setTextAlignment(Qt::AlignCenter);
 
+            bool diffHit = false;
+            for (const auto& range : m_diffRanges) {
+                const auto start = static_cast<size_t>(range.first);
+                const auto len = static_cast<size_t>(range.second);
+                if (offset >= start && offset < start + len) {
+                    item->setBackground(QBrush(QColor(255, 99, 71, 140))); // Tomato tint for changes
+                    diffHit = true;
+                    break;
+                }
+            }
+
             // Check if this byte is in highlighted range
-            if (offset >= m_highlightStart && offset < m_highlightStart + m_highlightLength) {
+            if (!diffHit && offset >= m_highlightStart && offset < m_highlightStart + m_highlightLength) {
                 item->setBackground(QBrush(QColor(255, 255, 0, 100))); // Yellow highlight
-            } else {
+            } else if (!diffHit) {
                 // Color based on chunk
                 const Chunk* chunk = m_document->findChunkContainingOffset(offset);
                 if (chunk) {
@@ -169,6 +189,24 @@ void HexEditorWidget::updateRow(int row)
                 textRepr += bytesToUtf16(b, b2);
             } else if (!m_utf16Mode) {
                 textRepr += byteToAscii(b);
+            }
+
+            // Tooltip for changes
+            if (m_byteChanges.contains(static_cast<qulonglong>(offset))) {
+                const auto pair = m_byteChanges.value(static_cast<qulonglong>(offset));
+                QString tip = "Changed byte";
+                if (pair.first >= 0) {
+                    tip += QString(" %1").arg(byteToHex(static_cast<uint8_t>(pair.first)));
+                } else {
+                    tip += " <none>";
+                }
+                tip += " -> ";
+                if (pair.second >= 0) {
+                    tip += QString("%1").arg(byteToHex(static_cast<uint8_t>(pair.second)));
+                } else {
+                    tip += "<removed>";
+                }
+                item->setToolTip(tip);
             }
         } else {
             item->setFlags(Qt::ItemIsEnabled);
@@ -193,6 +231,63 @@ void HexEditorWidget::handleChunkSelected(const Chunk* chunk)
 
     scrollToOffset(chunk->file_offset);
     highlightRange(chunk->file_offset, chunk->header.chunk_size);
+}
+
+void HexEditorWidget::handleCellClicked(int row, int column)
+{
+    // Column 0 is the offset label; columns 1-16 are bytes
+    if (column <= 0 || column > BYTES_PER_ROW) {
+        return;
+    }
+    size_t offset = static_cast<size_t>(row) * BYTES_PER_ROW + (column - 1);
+    if (offset >= m_document->getDataSize()) {
+        return;
+    }
+
+    const Chunk* chunk = m_document->findChunkContainingOffset(offset);
+    if (!chunk) {
+        return;
+    }
+
+    m_document->selectChunk(chunk);
+    highlightRange(chunk->file_offset, chunk->header.chunk_size);
+}
+
+void HexEditorWidget::showDiffRanges(const QVector<QPair<qulonglong, qulonglong>>& ranges)
+{
+    m_diffRanges = ranges;
+
+    int totalBytes = 0;
+    for (const auto& r : m_diffRanges) {
+        totalBytes += static_cast<int>(r.second);
+    }
+
+    if (!m_diffRanges.isEmpty()) {
+        m_statusLabel->setText(
+            QString("Reloaded: %1 changed regions, %2 bytes")
+                .arg(m_diffRanges.size())
+                .arg(totalBytes));
+    }
+
+    populateTable();
+}
+
+void HexEditorWidget::clearDiffHighlight()
+{
+    if (m_diffRanges.isEmpty()) {
+        return;
+    }
+    m_diffRanges.clear();
+    populateTable();
+}
+
+void HexEditorWidget::showByteChanges(const QVector<ByteChange>& changes)
+{
+    m_byteChanges.clear();
+    for (const auto& change : changes) {
+        m_byteChanges.insert(change.offset, qMakePair(change.oldValue, change.newValue));
+    }
+    populateTable();
 }
 
 void HexEditorWidget::scrollToOffset(size_t offset)

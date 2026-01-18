@@ -10,6 +10,7 @@ class ScenarioDocument;
 class HexEditorWidget;
 class ChunkTreeWidget;
 class ChunkPropertiesWidget;
+class ChangeOverviewWidget;
 
 /**
  * @brief Main application window for scenario viewer
@@ -24,6 +25,8 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 
 private slots:
     void openFile();
@@ -55,6 +58,7 @@ private:
     QSplitter *m_dualViewSplitter;
     HexEditorWidget *m_hexEditorDual;
     ChunkPropertiesWidget *m_propertiesWidgetDual;
+    ChangeOverviewWidget *m_changeOverview;
 
     // Actions
     QAction *m_openAction;

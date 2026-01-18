@@ -7,11 +7,15 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QLabel>
+#include <QHash>
 #include <vector>
 #include <cstddef>
+#include <QVector>
+#include <QPair>
 
 class ScenarioDocument;
 struct Chunk;
+struct ByteChange;
 
 /**
  * @brief Hex editor widget with color highlighting and search
@@ -31,8 +35,12 @@ public:
 public slots:
     void refresh();
     void handleChunkSelected(const Chunk* chunk);
+    void showDiffRanges(const QVector<QPair<qulonglong, qulonglong>>& ranges);
+    void clearDiffHighlight();
+    void showByteChanges(const QVector<ByteChange>& changes);
     void findNext();
     void findPrevious();
+    void handleCellClicked(int row, int column);
 
 private slots:
     void onCellChanged(int row, int column);
@@ -63,6 +71,8 @@ private:
     int m_currentSearchIndex;
     size_t m_highlightStart;
     size_t m_highlightLength;
+    QVector<QPair<qulonglong, qulonglong>> m_diffRanges;
+    QHash<qulonglong, QPair<int,int>> m_byteChanges; // offset -> <old,new>
 
     static const int BYTES_PER_ROW = 16;
 };

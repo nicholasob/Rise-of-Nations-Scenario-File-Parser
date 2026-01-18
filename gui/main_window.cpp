@@ -4,6 +4,7 @@
 #include "chunk_tree_widget.h"
 #include "chunk_properties_widget.h"
 #include "high_level_editor_dialog.h"
+#include "change_overview_widget.h"
 
 #include <QMenuBar>
 #include <QToolBar>
@@ -15,6 +16,8 @@
 #include <QCloseEvent>
 #include <QVBoxLayout>
 #include <QApplication>
+#include <QDragEnterEvent>
+#include <QMimeData>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -24,6 +27,9 @@ MainWindow::MainWindow(QWidget *parent)
     , m_rightTabs(nullptr)
     , m_hexEditor(nullptr)
     , m_propertiesWidget(nullptr)
+    , m_dualViewSplitter(nullptr)
+    , m_hexEditorDual(nullptr)
+    , m_propertiesWidgetDual(nullptr)
 {
     setWindowTitle("RoN Scenario Viewer (Read-Only)");
     resize(1400, 900);
@@ -33,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
     createToolBar();
     createStatusBar();
     setupLayout();
+    setAcceptDrops(true);
 
     // Connect document signals
     connect(m_document.get(), &ScenarioDocument::dirtyChanged,
@@ -46,9 +53,41 @@ MainWindow::MainWindow(QWidget *parent)
                     tr("File changed on disk, reloaded: %1").arg(info.fileName()),
                     4000);
             });
+    connect(m_document.get(), &ScenarioDocument::fileReloadDiff,
+            m_hexEditor, &HexEditorWidget::showDiffRanges);
+    connect(m_document.get(), &ScenarioDocument::fileReloadDiff,
+            m_hexEditorDual, &HexEditorWidget::showDiffRanges);
+    connect(m_document.get(), &ScenarioDocument::fileReloadByteChanges,
+            m_hexEditor, &HexEditorWidget::showByteChanges);
+    connect(m_document.get(), &ScenarioDocument::fileReloadByteChanges,
+            m_hexEditorDual, &HexEditorWidget::showByteChanges);
+    connect(m_document.get(), &ScenarioDocument::fileReloadFieldChanges,
+            m_propertiesWidget, &ChunkPropertiesWidget::setFieldChanges);
+    connect(m_document.get(), &ScenarioDocument::fileReloadFieldChanges,
+            m_propertiesWidgetDual, &ChunkPropertiesWidget::setFieldChanges);
+    connect(m_document.get(), &ScenarioDocument::dataLoaded,
+            m_propertiesWidget, &ChunkPropertiesWidget::clear);
+    connect(m_document.get(), &ScenarioDocument::dataLoaded,
+            m_propertiesWidgetDual, &ChunkPropertiesWidget::clear);
+    connect(m_document.get(), &ScenarioDocument::fileReloadFieldChanges,
+            m_changeOverview, &ChangeOverviewWidget::setChanges);
+    connect(m_document.get(), &ScenarioDocument::dataLoaded,
+            m_changeOverview, &ChangeOverviewWidget::clear);
     connect(m_document.get(), &ScenarioDocument::errorOccurred,
             [this](const QString& msg) {
                 QMessageBox::critical(this, "Error", msg);
+            });
+
+    connect(m_changeOverview, &ChangeOverviewWidget::highlightRequested,
+            this, [this](qulonglong offset, qulonglong length) {
+                if (m_hexEditor) {
+                    m_hexEditor->scrollToOffset(static_cast<size_t>(offset));
+                    m_hexEditor->highlightRange(static_cast<size_t>(offset), static_cast<size_t>(length));
+                }
+                if (m_hexEditorDual) {
+                    m_hexEditorDual->scrollToOffset(static_cast<size_t>(offset));
+                    m_hexEditorDual->highlightRange(static_cast<size_t>(offset), static_cast<size_t>(length));
+                }
             });
 
     loadSettings();
@@ -154,6 +193,10 @@ void MainWindow::setupLayout()
     m_dualViewSplitter->setStretchFactor(1, 4);
     m_rightTabs->addTab(m_dualViewSplitter, "Hex + Properties");
 
+    // Changes overview tab
+    m_changeOverview = new ChangeOverviewWidget(this);
+    m_rightTabs->addTab(m_changeOverview, "Changes");
+
     m_mainSplitter->addWidget(m_rightTabs);
 
     // Set splitter sizes (30% tree, 70% editor)
@@ -171,6 +214,12 @@ void MainWindow::setupLayout()
             m_hexEditorDual, &HexEditorWidget::handleChunkSelected);
     connect(m_chunkTree, &ChunkTreeWidget::chunkSelected,
             m_propertiesWidgetDual, &ChunkPropertiesWidget::displayChunk);
+    connect(m_document.get(), &ScenarioDocument::chunkSelected,
+            m_propertiesWidget, &ChunkPropertiesWidget::displayChunk);
+    connect(m_document.get(), &ScenarioDocument::chunkSelected,
+            m_propertiesWidgetDual, &ChunkPropertiesWidget::displayChunk);
+    connect(m_document.get(), &ScenarioDocument::chunkSelected,
+            m_chunkTree, &ChunkTreeWidget::highlightChunk);
 }
 
 void MainWindow::openFile()
@@ -335,6 +384,54 @@ void MainWindow::closeEvent(QCloseEvent *event)
     if (maybeSave()) {
         saveSettings();
         event->accept();
+    } else {
+        event->ignore();
+    }
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (event->mimeData()->hasUrls()) {
+        const auto urls = event->mimeData()->urls();
+        if (!urls.isEmpty() && urls.first().isLocalFile()) {
+            event->acceptProposedAction();
+            return;
+        }
+    }
+    event->ignore();
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+    if (!event->mimeData()->hasUrls()) {
+        event->ignore();
+        return;
+    }
+
+    const auto urls = event->mimeData()->urls();
+    if (urls.isEmpty() || !urls.first().isLocalFile()) {
+        event->ignore();
+        return;
+    }
+
+    const QString filePath = urls.first().toLocalFile();
+    if (filePath.isEmpty()) {
+        event->ignore();
+        return;
+    }
+
+    // Optional filter: only accept .scx or any file
+    // if (!filePath.toLower().endsWith(".scx")) { event->ignore(); return; }
+
+    if (!maybeSave()) {
+        event->ignore();
+        return;
+    }
+
+    if (m_document->loadFile(filePath)) {
+        m_currentFilePath = filePath;
+        statusBar()->showMessage(tr("File loaded (drop): %1").arg(QFileInfo(filePath).fileName()), 3000);
+        event->acceptProposedAction();
     } else {
         event->ignore();
     }

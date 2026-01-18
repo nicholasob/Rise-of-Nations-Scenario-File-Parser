@@ -40,6 +40,7 @@ set(GUI_SOURCES
     chunk_properties_widget.cpp
     chunk_metadata.cpp
     high_level_editor_dialog.cpp
+    change_overview_widget.cpp
 )
 
 # Header files
@@ -51,6 +52,7 @@ set(GUI_HEADERS
     chunk_properties_widget.h
     chunk_metadata.h
     high_level_editor_dialog.h
+    change_overview_widget.h
 )
 
 # Create executable
