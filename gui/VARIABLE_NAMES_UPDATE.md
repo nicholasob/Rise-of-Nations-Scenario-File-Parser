@@ -82,10 +82,10 @@ The properties panel now shows:
   - `encrypted_param1` (conditions/timing - XOR encrypted)
   - `encrypted_param2` (actions/targets - XOR encrypted)
 
-### Goods Chunks
-- **GOODS_ENTRIES** (520 bytes each):
+### Map Resource Chunks
+- **MAP_RESOURCE_ENTRIES** (520 bytes each):
   - `name` (UTF-16)
-  - `encrypted_param1/2` (economic parameters - XOR encrypted)
+  - `position_x/y` (XOR encrypted?)
 
 ### Advanced Feature Chunks
 - **FEATURE_DATA** (12 bytes each) - Mountain features:
@@ -139,7 +139,7 @@ Many chunks use XOR encryption (key 0x63637) for sensitive game data:
 - Health, armor, production values
 - Attack, range, capacity values
 - Trigger conditions and actions
-- Economic parameters for goods
+- Economic parameters for map location???
 
 The GUI displays these as hex values - decryption would be a future enhancement.
 

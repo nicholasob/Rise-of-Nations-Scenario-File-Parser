@@ -329,8 +329,8 @@ void ChunkMetadata::registerChunks()
     // MapResourceData0x4 (520 bytes each)
     ChunkInfo resourcesEntry(ChunkType::MAP_RESOURCES_ENTRIES, "MAP_RESOURCES_ENTRIES", "Map Resources", 520, colorResource);
     resourcesEntry.fields.push_back(FieldInfo("name", 0, 512, "char16_t[256]", "Resource name (UTF-16)"));
-    resourcesEntry.fields.push_back(FieldInfo("encrypted_param1", 512, 4, "uint32_t", "Economic parameter 1 (XOR encrypted)"));
-    resourcesEntry.fields.push_back(FieldInfo("encrypted_param2", 516, 4, "uint32_t", "Economic parameter 2 (XOR encrypted)"));
+    resourcesEntry.fields.push_back(FieldInfo("position_x", 512, 4, "uint32_t", "Economic parameter 1 (XOR encrypted)"));
+    resourcesEntry.fields.push_back(FieldInfo("position_y", 516, 4, "uint32_t", "Economic parameter 2 (XOR encrypted)"));
     registerChunk(resourcesEntry);
 
     // Advanced feature chunks

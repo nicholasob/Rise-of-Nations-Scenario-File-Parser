@@ -272,56 +272,56 @@ struct TriggerDataSubChunk0x16 : public VariableLengthArrayChunk<TriggerDataSubC
 #pragma pack(pop)
 
 //individual good data structure (520 bytes per good)
-struct GoodData0x4 {
-    char16_t name[256];          // good name (512 bytes - wide characters)
-    uint32_t encrypted_param1;  // Economic parameter 1 (XOR encrypted with 0x63637 based on code)
-                                // likely price, quantity, or value???
-    uint32_t encrypted_param2;  // Economic parameter 2 (XOR encrypted with 0x63637 based on code)
-                                // likely effects, requirements, or modifiers???
+struct MapResourceData0x4 {
+    char16_t name[256];   // map resource name (512 bytes - wide characters)
+    uint32_t position_x;  // XOR encrypted with 0x63637 based on code?
+    uint32_t position_y;  // XOR encrypted with 0x63637 based on code?
     // Total: 520 bytes (0x208)
     
+    /*
     //helper functions to decrypt the parameters
-    uint32_t get_param1() const { return encrypted_param1 ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
-    uint32_t get_param2() const { return encrypted_param2 ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
+    uint32_t get_param1() const { return position_x ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
+    uint32_t get_param2() const { return position_y ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
     
-    void set_param1(uint32_t value) { encrypted_param1 = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
-    void set_param2(uint32_t value) { encrypted_param2 = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
+    void set_param1(uint32_t value) { position_x = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
+    void set_param2(uint32_t value) { position_y = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
+    */
 };
-static_assert(sizeof(GoodData0x4) == 520, "GoodData0x4 must be exactly 520 bytes");
+static_assert(sizeof(MapResourceData0x4) == 520, "MapResourceData0x4 must be exactly 520 bytes");
 
 #pragma pack(push, 1)
-struct GoodsCountSubChunk0x17 : public ByteConvertible<GoodsCountSubChunk0x17> {
-    uint32_t goods_count;    //number of active goods in the scenario
+struct MapResourceCountSubChunk0x17 : public ByteConvertible<MapResourceCountSubChunk0x17> {
+    uint32_t map_resource_count;    //number of active map_resources in the scenario
 };
 #pragma pack(pop)
-static_assert(sizeof(GoodsCountSubChunk0x17) == 4, "GoodsCountSubChunk0x17 header size mismatch");
+static_assert(sizeof(MapResourceCountSubChunk0x17) == 4, "MapResourceCountSubChunk0x17 header size mismatch");
 
 #pragma pack(push,1)
-struct GoodsDataSubChunk0x18 : public VariableLengthArrayChunk<GoodsDataSubChunk0x18, GoodData0x4> {
-    std::vector<GoodData0x4> goods;
+struct MapResourceDataSubChunk0x18 : public VariableLengthArrayChunk<MapResourceDataSubChunk0x18, MapResourceData0x4> {
+    std::vector<MapResourceData0x4> map_resources;
 
-    GoodsDataSubChunk0x18() = default;
+    MapResourceDataSubChunk0x18() = default;
 
-    GoodsDataSubChunk0x18(const GoodsCountSubChunk0x17& header) {
-        goods.resize(header.goods_count);
+    MapResourceDataSubChunk0x18(const MapResourceCountSubChunk0x17& header) {
+        map_resources.resize(header.map_resource_count);
     }
 
-    GoodsDataSubChunk0x18(const size_t& trigger_count) {
-        goods.resize(trigger_count);
+    MapResourceDataSubChunk0x18(const size_t& trigger_count) {
+        map_resources.resize(trigger_count);
     }
 
     //implementation of pure virtual functions
-    std::vector<GoodData0x4>& get_container() override {
-        return goods;
+    std::vector<MapResourceData0x4>& get_container() override {
+        return map_resources;
     }
     
-    const std::vector<GoodData0x4>& get_container() const override {
-        return goods;
+    const std::vector<MapResourceData0x4>& get_container() const override {
+        return map_resources;
     }
 };
 #pragma pack(pop)
 
 //good object vtable pointer for type identification
-namespace GoodVTables {
+namespace MapResourceVTables {
     constexpr uintptr_t GOOD_VTABLE = 0xb447e8;  //Good::vftable address ...
 }

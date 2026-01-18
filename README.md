@@ -12,7 +12,7 @@ A C++ parser for reading, analyzing, and manipulating Rise of Nations scenario f
   - Units and buildings
   - Diplomatic relations
   - Triggers and conditions
-  - Resources and goods
+  - Resources and map resources
   - Visibility settings
 - Support for most major chunk types used in RoN scenarios (work in progress)
 

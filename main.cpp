@@ -24,7 +24,7 @@ std::vector<SpatialGroup> SPATIAL_GROUPS;
 size_t MAP_TOTAL_TILES = SIZE_MAX;
 size_t SCALED_TOTAL_TILES = SIZE_MAX;
 size_t TRIGGER_COUNT = SIZE_MAX;
-size_t GOODS_COUNT = SIZE_MAX;
+size_t MAP_RESOURCES_COUNT = SIZE_MAX;
 size_t PLAYER_COUNT = SIZE_MAX;
 size_t RESOURCE_COUNT = SIZE_MAX;
 size_t UNIT_TYPE_COUNT = SIZE_MAX;
@@ -459,34 +459,34 @@ int RunParseMode(int argc, char* argv[]) {
                 }
                 break;
 
-                case ChunkType::GOODS_COUNT: //0x17
+                case ChunkType::MAP_RESOURCES_COUNT: //0x17
                 {
-                    std::cout << "Goods Count chunk size: " << front->data.size() << std::endl;
-                    if ((unsigned long int)front->data.size() >= sizeof(GoodsCountSubChunk0x17)) {
+                    std::cout << "Map Resource Count chunk size: " << front->data.size() << std::endl;
+                    if ((unsigned long int)front->data.size() >= sizeof(MapResourceCountSubChunk0x17)) {
                         try {
-                            GoodsCountSubChunk0x17 goodsCount = GoodsCountSubChunk0x17::from_bytes(front->data);
-                            std::cout << "Goods count: " << goodsCount.goods_count << std::endl;
-                            GOODS_COUNT = goodsCount.goods_count; //store for GOODS_ENTRIES parsing later on
+                            MapResourceCountSubChunk0x17 mapResourceCount = MapResourceCountSubChunk0x17::from_bytes(front->data);
+                            std::cout << "Map resource count: " << mapResourceCount.map_resource_count << std::endl;
+                            MAP_RESOURCES_COUNT = mapResourceCount.map_resource_count; //store for MAP_RESOURCE_ENTRIES parsing later on
                         } catch (const std::exception& e) {
-                            std::cerr << "Error parsing goods count: " << e.what() << std::endl;
+                            std::cerr << "Error parsing map_resources count: " << e.what() << std::endl;
                         }
                     }
                 }
                 break;
 
-                case ChunkType::GOODS_ENTRIES: //0x18
+                case ChunkType::MAP_RESOURCES_ENTRIES: //0x18
                 {
-                    std::cout << "Goods Entries chunk size: " << front->data.size() << std::endl;
-                    if (GOODS_COUNT > 0) {
-                        std::cout << "Parsing goods entries for " << GOODS_COUNT << " goods..." << std::endl;
+                    std::cout << "Map Resource Entries chunk size: " << front->data.size() << std::endl;
+                    if (MAP_RESOURCES_COUNT > 0) {
+                        std::cout << "Parsing map_resources entries for " << MAP_RESOURCES_COUNT << " map_resources..." << std::endl;
                         try {
-                            GoodsDataSubChunk0x18 goodsEntries = GoodsDataSubChunk0x18::from_bytes(front->data, GOODS_COUNT);
-                            std::cout << "Successfully parsed goods entries" << std::endl;
+                            MapResourceDataSubChunk0x18 mapResourceEntries = MapResourceDataSubChunk0x18::from_bytes(front->data, MAP_RESOURCES_COUNT);
+                            std::cout << "Successfully parsed map_resources entries" << std::endl;
                         } catch (const std::exception& e) {
-                            std::cerr << "Error parsing goods entries: " << e.what() << std::endl;
+                            std::cerr << "Error parsing map_resources entries: " << e.what() << std::endl;
                         }
                     } else {
-                        std::cout << "Warning: No goods count available for parsing goods entries" << std::endl;
+                        std::cout << "Warning: No map_resources count available for parsing map_resources entries" << std::endl;
                     }
                 }
                 break;
