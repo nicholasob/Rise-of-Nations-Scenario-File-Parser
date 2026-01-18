@@ -38,7 +38,7 @@ void ChunkMetadata::registerChunks()
     registerChunk(ChunkInfo(ChunkType::SCENARIO_HEADER, "SCENARIO_HEADER", "Container", 0, colorContainer, true));
     registerChunk(ChunkInfo(ChunkType::MAP_DATA, "MAP_DATA", "Container", 0, colorContainer, true));
     registerChunk(ChunkInfo(ChunkType::TRIGGER_DATA, "TRIGGER_DATA", "Container", 0, colorContainer, true));
-    registerChunk(ChunkInfo(ChunkType::GOODS_DATA, "GOODS_DATA", "Container", 0, colorContainer, true));
+    registerChunk(ChunkInfo(ChunkType::MAP_RESOURCES_DATA, "MAP_RESOURCES_DATA", "Container", 0, colorContainer, true));
     registerChunk(ChunkInfo(ChunkType::FORMATION_DATA, "FORMATION_DATA", "Container", 0, colorContainer, true));
     registerChunk(ChunkInfo(ChunkType::FORMATION_HEADER, "FORMATION_HEADER", "Container", 0, colorContainer, true));
     registerChunk(ChunkInfo(ChunkType::BUILDING_GROUP_HEADER, "BUILDING_GROUP_HEADER", "Container", 0, colorContainer, true));
@@ -321,17 +321,17 @@ void ChunkMetadata::registerChunks()
     triggerEntry.fields.push_back(FieldInfo("encrypted_param2", 516, 4, "uint32_t", "Actions/targets (XOR encrypted)"));
     registerChunk(triggerEntry);
 
-    // Goods chunks
-    ChunkInfo goodsCount(ChunkType::GOODS_COUNT, "GOODS_COUNT", "Goods", 4, colorTrigger);
-    goodsCount.fields.push_back(FieldInfo("goods_count", 0, 4, "uint32_t", "Number of active goods"));
-    registerChunk(goodsCount);
+    // Map resources chunks
+    ChunkInfo resourcesCount(ChunkType::MAP_RESOURCES_COUNT, "MAP_RESOURCES_COUNT", "Map Resources", 4, colorResource);
+    resourcesCount.fields.push_back(FieldInfo("resource_count", 0, 4, "uint32_t", "Number of active map resources"));
+    registerChunk(resourcesCount);
 
-    // GoodData0x4 (520 bytes each)
-    ChunkInfo goodsEntry(ChunkType::GOODS_ENTRIES, "GOODS_ENTRIES", "Goods", 520, colorTrigger);
-    goodsEntry.fields.push_back(FieldInfo("name", 0, 512, "char16_t[256]", "Good name (UTF-16)"));
-    goodsEntry.fields.push_back(FieldInfo("encrypted_param1", 512, 4, "uint32_t", "Economic parameter 1 (XOR encrypted)"));
-    goodsEntry.fields.push_back(FieldInfo("encrypted_param2", 516, 4, "uint32_t", "Economic parameter 2 (XOR encrypted)"));
-    registerChunk(goodsEntry);
+    // MapResourceData0x4 (520 bytes each)
+    ChunkInfo resourcesEntry(ChunkType::MAP_RESOURCES_ENTRIES, "MAP_RESOURCES_ENTRIES", "Map Resources", 520, colorResource);
+    resourcesEntry.fields.push_back(FieldInfo("name", 0, 512, "char16_t[256]", "Resource name (UTF-16)"));
+    resourcesEntry.fields.push_back(FieldInfo("encrypted_param1", 512, 4, "uint32_t", "Economic parameter 1 (XOR encrypted)"));
+    resourcesEntry.fields.push_back(FieldInfo("encrypted_param2", 516, 4, "uint32_t", "Economic parameter 2 (XOR encrypted)"));
+    registerChunk(resourcesEntry);
 
     // Advanced feature chunks
     // AdvancedFeature1 - Mountain features

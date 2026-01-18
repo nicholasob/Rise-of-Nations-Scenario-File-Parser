@@ -40,9 +40,9 @@ const ChunkTypeInfo ChunkTypeTable[] = {
     { ChunkType::TRIGGER_COUNT,                         "TRIGGER_COUNT" },
     { ChunkType::TRIGGER_ENTRIES,                       "TRIGGER_ENTRIES" },
 
-    { ChunkType::GOODS_DATA,                            "GOODS_DATA" },
-    { ChunkType::GOODS_COUNT,                           "GOODS_COUNT" },
-    { ChunkType::GOODS_ENTRIES,                         "GOODS_ENTRIES" },
+    { ChunkType::MAP_RESOURCES_DATA,                    "MAP_RESOURCES_DATA" },
+    { ChunkType::MAP_RESOURCES_COUNT,                   "MAP_RESOURCES_COUNT" },
+    { ChunkType::MAP_RESOURCES_ENTRIES,                 "MAP_RESOURCES_ENTRIES" },
 
     { ChunkType::FORMATION_DATA,                        "FORMATION_DATA" },
     { ChunkType::FORMATION_HEADER,                      "FORMATION_HEADER" },

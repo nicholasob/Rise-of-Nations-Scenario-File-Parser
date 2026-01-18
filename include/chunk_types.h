@@ -127,10 +127,10 @@ enum class ChunkType : uint16_t {
     TRIGGER_COUNT                           = 0x15, // number of triggers (4 bytes)
     TRIGGER_ENTRIES                         = 0x16, // trigger data (520 bytes each)
 
-    //goods related chunks/features
-    GOODS_DATA                              = 0x04, // container for goods
-    GOODS_COUNT                             = 0x17, // number of goods (4 bytes)
-    GOODS_ENTRIES                           = 0x18, // goods data (520 bytes each)
+    //map resources related chunks/features
+    MAP_RESOURCES_DATA                      = 0x04, // container for map resources
+    MAP_RESOURCES_COUNT                     = 0x17, // number of map resources (4 bytes)
+    MAP_RESOURCES_ENTRIES                   = 0x18, // map resource data (520 bytes each)
 
     //formation system
     FORMATION_DATA                          = 0x05, // container for formations
