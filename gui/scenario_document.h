@@ -142,7 +142,8 @@ private:
         const std::vector<Chunk>& oldChunks,
         const std::vector<Chunk>& newChunks) const;
     QString formatFieldValue(const FieldInfo& field,
-                             const Chunk& chunk) const;
+                             const Chunk& chunk,
+                             size_t baseOffset = 0) const;
 };
 
 #endif // SCENARIO_DOCUMENT_H

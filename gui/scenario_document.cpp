@@ -440,15 +440,17 @@ void ScenarioDocument::flattenChunks(const std::vector<Chunk>& chunks,
 }
 
 QString ScenarioDocument::formatFieldValue(const FieldInfo& field,
-                                           const Chunk& chunk) const
+                                           const Chunk& chunk,
+                                           size_t baseOffset) const
 {
-    if (field.offset + field.size > chunk.data.size()) {
+    const size_t absolute = baseOffset + field.offset;
+    if (absolute + field.size > chunk.data.size()) {
         return "<out of range>";
     }
 
     QStringList parts;
     for (size_t i = 0; i < field.size; ++i) {
-        const auto b = static_cast<uint8_t>(chunk.data[field.offset + i]);
+        const auto b = static_cast<uint8_t>(chunk.data[absolute + i]);
         parts << QString("%1").arg(b, 2, 16, QLatin1Char('0')).toUpper();
     }
     QString hex = parts.join(" ");
@@ -500,35 +502,90 @@ QVector<FieldChange> ScenarioDocument::computeFieldChanges(
             continue;
         }
 
-        for (const auto& field : info->fields) {
-            if (field.offset + field.size > oldC->data.size() ||
-                field.offset + field.size > newC->data.size()) {
-                continue;
-            }
+        const size_t elementSize = info->dataSize;
+        size_t oldElements = (elementSize > 0 && oldC->data.size() >= elementSize)
+            ? oldC->data.size() / elementSize : 1;
+        size_t newElements = (elementSize > 0 && newC->data.size() >= elementSize)
+            ? newC->data.size() / elementSize : 1;
+        const size_t compareElements = std::min(oldElements, newElements);
 
-            bool differs = false;
-            for (size_t b = 0; b < field.size; ++b) {
-                if (static_cast<uint8_t>(oldC->data[field.offset + b]) !=
-                    static_cast<uint8_t>(newC->data[field.offset + b])) {
-                    differs = true;
-                    break;
+        for (size_t elemIdx = 0; elemIdx < compareElements; ++elemIdx) {
+            const size_t baseOld = elementSize > 0 ? elemIdx * elementSize : 0;
+            const size_t baseNew = elementSize > 0 ? elemIdx * elementSize : 0;
+
+            for (const auto& field : info->fields) {
+                if (baseOld + field.offset + field.size > oldC->data.size() ||
+                    baseNew + field.offset + field.size > newC->data.size()) {
+                    continue;
+                }
+
+                bool differs = false;
+                for (size_t b = 0; b < field.size; ++b) {
+                    if (static_cast<uint8_t>(oldC->data[baseOld + field.offset + b]) !=
+                        static_cast<uint8_t>(newC->data[baseNew + field.offset + b])) {
+                        differs = true;
+                        break;
+                    }
+                }
+
+                if (!differs) {
+                    continue;
+                }
+
+                FieldChange fc;
+                fc.chunkPath = newFlat[i].path;
+                fc.chunkName = QString::fromStdString(info->name);
+                fc.fieldName = (compareElements > 1)
+                    ? QString("[%1] %2").arg(elemIdx).arg(QString::fromStdString(field.name))
+                    : QString::fromStdString(field.name);
+                fc.oldValue = formatFieldValue(field, *oldC, baseOld);
+                fc.newValue = formatFieldValue(field, *newC, baseNew);
+                const qulonglong dataStart = getChunkDataStart(*newC);
+                fc.offset = dataStart + static_cast<qulonglong>(baseNew + field.offset);
+                fc.length = static_cast<qulonglong>(field.size);
+                changes.push_back(std::move(fc));
+            }
+        }
+
+        // Added/removed elements within the same chunk
+        if (elementSize > 0 && newElements > oldElements) {
+            for (size_t elemIdx = oldElements; elemIdx < newElements; ++elemIdx) {
+                for (const auto& field : info->fields) {
+                    const size_t baseNew = elemIdx * elementSize;
+                    if (baseNew + field.offset + field.size > newC->data.size()) {
+                        continue;
+                    }
+                    FieldChange fc;
+                    fc.chunkPath = newFlat[i].path;
+                    fc.chunkName = QString::fromStdString(info->name);
+                    fc.fieldName = QString("[%1] %2 (added)").arg(elemIdx).arg(QString::fromStdString(field.name));
+                    fc.oldValue = "";
+                    fc.newValue = formatFieldValue(field, *newC, baseNew);
+                    const qulonglong dataStart = getChunkDataStart(*newC);
+                    fc.offset = dataStart + static_cast<qulonglong>(baseNew + field.offset);
+                    fc.length = static_cast<qulonglong>(field.size);
+                    changes.push_back(std::move(fc));
                 }
             }
-
-            if (!differs) {
-                continue;
+        } else if (elementSize > 0 && oldElements > newElements) {
+            for (size_t elemIdx = newElements; elemIdx < oldElements; ++elemIdx) {
+                for (const auto& field : info->fields) {
+                    const size_t baseOld = elemIdx * elementSize;
+                    if (baseOld + field.offset + field.size > oldC->data.size()) {
+                        continue;
+                    }
+                    FieldChange fc;
+                    fc.chunkPath = newFlat[i].path;
+                    fc.chunkName = QString::fromStdString(info->name);
+                    fc.fieldName = QString("[%1] %2 (removed)").arg(elemIdx).arg(QString::fromStdString(field.name));
+                    fc.oldValue = formatFieldValue(field, *oldC, baseOld);
+                    fc.newValue = "";
+                    const qulonglong dataStart = getChunkDataStart(*oldC);
+                    fc.offset = dataStart + static_cast<qulonglong>(baseOld + field.offset);
+                    fc.length = static_cast<qulonglong>(field.size);
+                    changes.push_back(std::move(fc));
+                }
             }
-
-            FieldChange fc;
-            fc.chunkPath = newFlat[i].path;
-            fc.chunkName = QString::fromStdString(info->name);
-            fc.fieldName = QString::fromStdString(field.name);
-            fc.oldValue = formatFieldValue(field, *oldC);
-            fc.newValue = formatFieldValue(field, *newC);
-            const qulonglong dataStart = getChunkDataStart(*newC);
-            fc.offset = dataStart + static_cast<qulonglong>(field.offset);
-            fc.length = static_cast<qulonglong>(field.size);
-            changes.push_back(std::move(fc));
         }
     }
 
