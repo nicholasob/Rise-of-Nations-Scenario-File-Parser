@@ -13,11 +13,11 @@ struct UnitsObjectDataChunk0x3A : public ByteConvertible<UnitsObjectDataChunk0x3
     
     // string area 1 (variable length, max 512 bytes)
     // +0x0C to +0x20B: unit name/description string (wide char)
-    char16_t string_data_1[256]; // +0x0C: Max 255 chars + null terminator
+    char16_t original_unit_name[256]; // +0x0C: Max 255 chars + null terminator
     
     // string area 2 (variable length, max 200 bytes)  
     // +0x20C to +0x2D3: Secondary string data (wide char)
-    char16_t string_data_2[100]; // +0x20C: Max 99 chars + null terminator
+    char16_t custom_unit_name[100]; // +0x20C: Max 99 chars + null terminator
     
     // Fixed position unit properties (written by FUN_00667ee0) & based on editor trial and error
     uint32_t required_1;        // +0x2D4: param_2[0xb5] = source[0x30]

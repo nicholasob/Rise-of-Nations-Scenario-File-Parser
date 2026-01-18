@@ -210,7 +210,7 @@ void ChunkMetadata::registerChunks()
     unitObject.fields.push_back(FieldInfo("property_0x04", 4, 4, "uint32_t", "Property from offset 0x04"));
     unitObject.fields.push_back(FieldInfo("property_0x10", 8, 4, "uint32_t", "Property from offset 0x10"));
     unitObject.fields.push_back(FieldInfo("unit_name", 12, 512, "char16_t[256]", "Unit name/description (UTF-16)"));
-    unitObject.fields.push_back(FieldInfo("string_data_2", 524, 200, "char16_t[100]", "Secondary string data (UTF-16)"));
+    unitObject.fields.push_back(FieldInfo("custom_unit_name", 524, 200, "char16_t[100]", "Secondary string data (UTF-16)"));
     unitObject.fields.push_back(FieldInfo("required_1", 724, 4, "uint32_t", "Required field 1"));
     unitObject.fields.push_back(FieldInfo("required_2", 728, 4, "uint32_t", "Required field 2"));
     unitObject.fields.push_back(FieldInfo("required_3", 732, 4, "uint32_t", "Required field 3"));
@@ -239,7 +239,7 @@ void ChunkMetadata::registerChunks()
     structureObject.fields.push_back(FieldInfo("property_0x04", 4, 4, "uint32_t", "Property from offset 0x04"));
     structureObject.fields.push_back(FieldInfo("property_0x10", 8, 4, "uint32_t", "Property from offset 0x10"));
     structureObject.fields.push_back(FieldInfo("building_name", 12, 512, "char16_t[256]", "Building name/description (UTF-16)"));
-    structureObject.fields.push_back(FieldInfo("string_data_2", 524, 200, "char16_t[100]", "Secondary string data (UTF-16)"));
+    structureObject.fields.push_back(FieldInfo("custom_building_name", 524, 200, "char16_t[100]", "Secondary string data (UTF-16)"));
     structureObject.fields.push_back(FieldInfo("required_1", 724, 4, "uint32_t", "Required field 1"));
     structureObject.fields.push_back(FieldInfo("required_2", 728, 4, "uint32_t", "Required field 2"));
     structureObject.fields.push_back(FieldInfo("required_3", 732, 4, "uint32_t", "Required field 3"));

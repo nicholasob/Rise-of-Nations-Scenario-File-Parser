@@ -123,10 +123,10 @@ struct BuildingObjectDataChunk0x3B : public ByteConvertible<BuildingObjectDataCh
     uint32_t property_0x10;     // +0x08: From source offset 0x10
     
     //string area 1 (variable length, max 512 bytes)
-    char16_t string_data_1[256]; // +0x0C: Building name/description (max 255 chars + null)
+    char16_t original_building_name[256]; // +0x0C: Original(??) building name/description (max 255 chars + null)
     
     //string area 2 (variable length, max 200 bytes)  
-    char16_t string_data_2[100]; // +0x20C: Secondary string data (max 99 chars + null)
+    char16_t custom_building_name[100]; // +0x20C: Custom name for building (max 99 chars + null)
     
     // fixed position building properties (written by FUN_00667ee0) based on scenario editor
     uint32_t required_1;    // +0x2D4: param_2[0xb5] = source[0x30]

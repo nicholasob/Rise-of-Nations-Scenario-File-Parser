@@ -101,19 +101,19 @@ public:
         if (role == Qt::BackgroundRole && col >= 1 && col <= 16) {
             size_t offset = baseOffset + (col - 1);
             if (offset < dataSize) {
+                // Selection highlight first (highest priority)
+                if (offset >= m_owner->m_highlightStart &&
+                    offset < m_owner->m_highlightStart + m_owner->m_highlightLength) {
+                    return QBrush(QColor(255, 235, 59, 150)); // vivid amber for selection
+                }
+
                 // Diff highlighting
                 for (const auto& range : m_owner->m_diffRanges) {
                     const auto start = static_cast<size_t>(range.first);
                     const auto len = static_cast<size_t>(range.second);
                     if (offset >= start && offset < start + len) {
-                        return QBrush(QColor(255, 99, 71, 140)); // Tomato tint
+                        return QBrush(QColor(255, 99, 71, 110)); // lighter tomato, lower priority
                     }
-                }
-
-                // Selection highlight
-                if (offset >= m_owner->m_highlightStart &&
-                    offset < m_owner->m_highlightStart + m_owner->m_highlightLength) {
-                    return QBrush(QColor(255, 255, 0, 100)); // Yellow
                 }
 
                 // Chunk color
