@@ -109,29 +109,37 @@ void ChunkMetadata::registerChunks()
     metadata.fields.push_back(FieldInfo("magic", 4, 4, "uint32_t", "Magic number (0xf00dcafe)"));
     metadata.fields.push_back(FieldInfo("scenario_name", 8, 200, "char16_t[100]", "Scenario name (UTF-16)"));
     metadata.fields.push_back(FieldInfo("player_setting1", 208, 4, "uint32_t", "Player setting 1"));
-    metadata.fields.push_back(FieldInfo("player_setting2", 212, 4, "uint32_t", "Player setting 2"));
+    metadata.fields.push_back(FieldInfo("game_rules", 212, 4, "uint32_t", "Player setting 2"));
     metadata.fields.push_back(FieldInfo("player_setting3", 216, 4, "uint32_t", "Player setting 3"));
     metadata.fields.push_back(FieldInfo("player_setting4", 220, 4, "uint32_t", "Player setting 4"));
     metadata.fields.push_back(FieldInfo("global_setting", 224, 4, "uint32_t", "Global setting"));
     metadata.fields.push_back(FieldInfo("game_flags", 228, 4, "uint32_t", "Game mode flags"));
     metadata.fields.push_back(FieldInfo("ai_difficulty", 232, 4, "uint32_t", "AI difficulty"));
-    metadata.fields.push_back(FieldInfo("victory_condition", 236, 4, "uint32_t", "Victory condition type"));
-    metadata.fields.push_back(FieldInfo("map_type", 240, 4, "uint32_t", "Map type"));
-    metadata.fields.push_back(FieldInfo("setting1", 244, 4, "uint32_t", "Game setting 1"));
-    metadata.fields.push_back(FieldInfo("setting2", 248, 4, "uint32_t", "Game setting 2"));
-    metadata.fields.push_back(FieldInfo("setting3", 252, 4, "uint32_t", "Game setting 3"));
-    metadata.fields.push_back(FieldInfo("setting4", 256, 4, "uint32_t", "Game setting 4"));
-    metadata.fields.push_back(FieldInfo("setting5", 260, 4, "uint32_t", "Game setting 5"));
-    metadata.fields.push_back(FieldInfo("setting6", 264, 4, "uint32_t", "Game setting 6"));
-    metadata.fields.push_back(FieldInfo("setting7", 268, 4, "uint32_t", "Game setting 7"));
-    metadata.fields.push_back(FieldInfo("setting8", 272, 4, "uint32_t", "Game setting 8"));
+    metadata.fields.push_back(FieldInfo("start_age", 236, 4, "uint32_t", "Victory condition type"));
+    metadata.fields.push_back(FieldInfo("end_age", 240, 4, "uint32_t", "Map type"));
+    metadata.fields.push_back(FieldInfo("reveal_map", 244, 4, "uint32_t", "Game setting 1"));
+    metadata.fields.push_back(FieldInfo("elimination", 248, 4, "uint32_t", "Game setting 2"));
+    metadata.fields.push_back(FieldInfo("victory", 252, 4, "uint32_t", "Game setting 3"));
+    metadata.fields.push_back(FieldInfo("score", 256, 4, "uint32_t", "Game setting 4"));
+    metadata.fields.push_back(FieldInfo("time_limit", 260, 4, "uint32_t", "Game setting 5"));
+    metadata.fields.push_back(FieldInfo("wonder_victory", 264, 4, "uint32_t", "Game setting 6"));
+    metadata.fields.push_back(FieldInfo("territory_goal", 268, 4, "uint32_t", "Game setting 7"));
+    metadata.fields.push_back(FieldInfo("income_goal", 272, 4, "uint32_t", "Game setting 8"));
     metadata.fields.push_back(FieldInfo("player_setting5", 276, 4, "uint32_t", "Player setting 5"));
     // Global blobs (280-376 = 96 bytes = 24 uint32_t values)
-    for (int i = 0; i < 24; ++i) {
+    for (int i = 0; i < 8; ++i) {
+        metadata.fields.push_back(FieldInfo("camera_start_position_X_nation_" + std::to_string(i+1), 280 + i*4, 4, "uint32_t", "Global setting " + std::to_string(i+1)));
+    }
+    // Global blobs (280-376 = 96 bytes = 24 uint32_t values)
+    for (int i = 0; i < 8; ++i) {
+        metadata.fields.push_back(FieldInfo("camera_start_position_Y_nation_" + std::to_string(i+1), 280 + i*4, 4, "uint32_t", "Global setting " + std::to_string(i+1)));
+    }
+    // Global blobs (280-376 = 96 bytes = 24 uint32_t values)
+    for (int i = 0; i < 8; ++i) {
         metadata.fields.push_back(FieldInfo("global_" + std::to_string(i+1), 280 + i*4, 4, "uint32_t", "Global setting " + std::to_string(i+1)));
     }
     metadata.fields.push_back(FieldInfo("some_setting", 376, 4, "uint32_t", "Additional setting"));
-    metadata.fields.push_back(FieldInfo("extra_flag", 380, 4, "uint32_t", "Extra flag"));
+    metadata.fields.push_back(FieldInfo("Population", 380, 4, "uint32_t", "Extra flag"));
     registerChunk(metadata);
 
     // Player chunks

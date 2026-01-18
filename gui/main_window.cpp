@@ -88,6 +88,10 @@ MainWindow::MainWindow(QWidget *parent)
                     m_hexEditorDual->scrollToOffset(static_cast<size_t>(offset));
                     m_hexEditorDual->highlightRange(static_cast<size_t>(offset), static_cast<size_t>(length));
                 }
+                const Chunk* chunk = m_document->findChunkContainingOffset(static_cast<size_t>(offset));
+                if (chunk) {
+                    m_document->selectChunk(chunk);
+                }
             });
 
     loadSettings();
@@ -220,6 +224,32 @@ void MainWindow::setupLayout()
             m_propertiesWidgetDual, &ChunkPropertiesWidget::displayChunk);
     connect(m_document.get(), &ScenarioDocument::chunkSelected,
             m_chunkTree, &ChunkTreeWidget::highlightChunk);
+    connect(m_propertiesWidget, &ChunkPropertiesWidget::fieldRangeSelected,
+            this, [this](qulonglong offset, qulonglong length) {
+                if (m_hexEditor) {
+                    m_hexEditor->scrollToOffset(static_cast<size_t>(offset));
+                    m_hexEditor->highlightRange(static_cast<size_t>(offset), static_cast<size_t>(length));
+                }
+                if (m_hexEditorDual) {
+                    m_hexEditorDual->scrollToOffset(static_cast<size_t>(offset));
+                    m_hexEditorDual->highlightRange(static_cast<size_t>(offset), static_cast<size_t>(length));
+                }
+            });
+    connect(m_propertiesWidgetDual, &ChunkPropertiesWidget::fieldRangeSelected,
+            this, [this](qulonglong offset, qulonglong length) {
+                if (m_hexEditor) {
+                    m_hexEditor->scrollToOffset(static_cast<size_t>(offset));
+                    m_hexEditor->highlightRange(static_cast<size_t>(offset), static_cast<size_t>(length));
+                }
+                if (m_hexEditorDual) {
+                    m_hexEditorDual->scrollToOffset(static_cast<size_t>(offset));
+                    m_hexEditorDual->highlightRange(static_cast<size_t>(offset), static_cast<size_t>(length));
+                }
+            });
+    connect(m_hexEditor, &HexEditorWidget::byteOffsetSelected,
+            m_propertiesWidget, &ChunkPropertiesWidget::highlightFieldAtOffset);
+    connect(m_hexEditorDual, &HexEditorWidget::byteOffsetSelected,
+            m_propertiesWidgetDual, &ChunkPropertiesWidget::highlightFieldAtOffset);
 }
 
 void MainWindow::openFile()

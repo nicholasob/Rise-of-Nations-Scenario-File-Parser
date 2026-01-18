@@ -291,6 +291,7 @@ void HexEditorWidget::handleCellClicked(int row, int column)
 
     m_document->selectChunk(chunk);
     highlightRange(chunk->file_offset, chunk->header.chunk_size);
+    emit byteOffsetSelected(static_cast<qulonglong>(offset));
 }
 
 void HexEditorWidget::showDiffRanges(const QVector<QPair<qulonglong, qulonglong>>& ranges)

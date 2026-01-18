@@ -9,6 +9,8 @@
 ChunkPropertiesWidget::ChunkPropertiesWidget(ScenarioDocument *document, QWidget *parent)
     : QWidget(parent)
     , m_document(document)
+    , m_currentChunk(nullptr)
+    , m_pendingHighlightOffset(std::numeric_limits<qulonglong>::max())
 {
     setupUI();
 }
@@ -32,6 +34,8 @@ void ChunkPropertiesWidget::setupUI()
     m_table->setAlternatingRowColors(true);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
+    connect(m_table->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, &ChunkPropertiesWidget::handleSelectionChanged);
 
     layout->addWidget(m_table);
 }
@@ -43,14 +47,22 @@ void ChunkPropertiesWidget::displayChunk(const Chunk* chunk)
         return;
     }
 
+    m_currentChunk = chunk;
     displayHeader(chunk);
     displayFields(chunk);
+    if (m_pendingHighlightOffset != std::numeric_limits<qulonglong>::max()) {
+        highlightFieldAtOffset(m_pendingHighlightOffset);
+        m_pendingHighlightOffset = std::numeric_limits<qulonglong>::max();
+    }
 }
 
 void ChunkPropertiesWidget::clear()
 {
     m_chunkInfoLabel->clear();
     m_table->setRowCount(0);
+    m_rowRanges.clear();
+    m_currentChunk = nullptr;
+    m_pendingHighlightOffset = std::numeric_limits<qulonglong>::max();
 }
 
 void ChunkPropertiesWidget::setFieldChanges(const QVector<FieldChange>& changes)
@@ -91,6 +103,7 @@ void ChunkPropertiesWidget::displayHeader(const Chunk* chunk)
 void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
 {
     m_table->setRowCount(0);
+    m_rowRanges.clear();
 
     auto& metadata = ChunkMetadata::instance();
     const ChunkInfo* chunkInfo = metadata.getChunkInfo(chunk->header.chunk_type_identifier);
@@ -100,6 +113,7 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
         m_table->setRowCount(1);
         m_table->setItem(0, 0, new QTableWidgetItem("No field metadata available"));
         m_table->setSpan(0, 0, 1, 4);
+        m_rowRanges.resize(1);
         return;
     }
 
@@ -114,6 +128,7 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
     // If we have multiple elements, display them all
     if (elementCount > 1) {
         m_table->setRowCount(chunkInfo->fields.size() * elementCount);
+        m_rowRanges.resize(static_cast<int>(chunkInfo->fields.size() * elementCount));
 
         for (size_t elemIdx = 0; elemIdx < elementCount; ++elemIdx) {
             size_t baseOffset = elemIdx * elementSize;
@@ -135,6 +150,10 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
                 // Offset (absolute within chunk data)
                 size_t absoluteOffset = baseOffset + field.offset;
                 m_table->setItem(rowIdx, 2, new QTableWidgetItem(QString::number(absoluteOffset)));
+                const qulonglong dataStart = m_document->getChunkDataStart(*chunk);
+                m_rowRanges[static_cast<int>(rowIdx)] = qMakePair(
+                    dataStart + static_cast<qulonglong>(absoluteOffset),
+                    static_cast<qulonglong>(field.size));
 
                 // Value - decode based on type and size
                 QString value;
@@ -195,7 +214,12 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
                 QString oldVal;
                 QString newVal;
                 if (isFieldChanged(chunk, absoluteOffset, field.size, oldVal, newVal)) {
-                    valueItem->setBackground(QBrush(QColor(255, 248, 200))); // soft yellow
+                    // High-contrast highlight for changed fields
+                    valueItem->setBackground(QBrush(QColor(255, 236, 179))); // light amber
+                    valueItem->setForeground(QBrush(QColor(25, 25, 25)));   // dark text
+                    QFont f = valueItem->font();
+                    f.setBold(true);
+                    valueItem->setFont(f);
                     QString tip = valueItem->toolTip();
                     if (!tip.isEmpty()) {
                         tip += "\n";
@@ -209,6 +233,7 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
     } else {
         // Single element - original behavior
         m_table->setRowCount(chunkInfo->fields.size());
+        m_rowRanges.resize(static_cast<int>(chunkInfo->fields.size()));
 
         for (size_t i = 0; i < chunkInfo->fields.size(); ++i) {
             const FieldInfo& field = chunkInfo->fields[i];
@@ -221,6 +246,10 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
 
             // Offset (relative to chunk data)
             m_table->setItem(i, 2, new QTableWidgetItem(QString::number(field.offset)));
+            const qulonglong dataStart = m_document->getChunkDataStart(*chunk);
+            m_rowRanges[static_cast<int>(i)] = qMakePair(
+                dataStart + static_cast<qulonglong>(field.offset),
+                static_cast<qulonglong>(field.size));
 
             // Value - decode based on type and size
             QString value;
@@ -281,7 +310,11 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
             QString oldVal;
             QString newVal;
             if (isFieldChanged(chunk, field.offset, field.size, oldVal, newVal)) {
-                valueItem->setBackground(QBrush(QColor(255, 248, 200))); // soft yellow
+                valueItem->setBackground(QBrush(QColor(255, 236, 179))); // light amber
+                valueItem->setForeground(QBrush(QColor(25, 25, 25)));   // dark text
+                QFont f = valueItem->font();
+                f.setBold(true);
+                valueItem->setFont(f);
                 QString tip = valueItem->toolTip();
                 if (!tip.isEmpty()) {
                     tip += "\n";
@@ -296,7 +329,8 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
 
 bool ChunkPropertiesWidget::isFieldChanged(const Chunk* chunk, size_t absoluteOffset, size_t size, QString& oldVal, QString& newVal) const
 {
-    const qulonglong start = static_cast<qulonglong>(chunk->file_offset + absoluteOffset);
+    const qulonglong dataStart = m_document->getChunkDataStart(*chunk);
+    const qulonglong start = dataStart + static_cast<qulonglong>(absoluteOffset);
     const qulonglong end = start + static_cast<qulonglong>(size);
 
     for (const auto& change : m_fieldChanges) {
@@ -309,4 +343,45 @@ bool ChunkPropertiesWidget::isFieldChanged(const Chunk* chunk, size_t absoluteOf
         }
     }
     return false;
+}
+
+void ChunkPropertiesWidget::handleSelectionChanged()
+{
+    if (!m_currentChunk || m_rowRanges.isEmpty()) {
+        return;
+    }
+
+    const auto selected = m_table->selectionModel()->selectedRows();
+    if (selected.isEmpty()) {
+        return;
+    }
+
+    int row = selected.first().row();
+    if (row < 0 || row >= m_rowRanges.size()) {
+        return;
+    }
+
+    const auto range = m_rowRanges[row];
+    emit fieldRangeSelected(range.first, range.second);
+}
+
+void ChunkPropertiesWidget::highlightFieldAtOffset(qulonglong offset)
+{
+    if (m_rowRanges.isEmpty()) {
+        // Defer until rows are built
+        m_pendingHighlightOffset = offset;
+        return;
+    }
+
+    for (int row = 0; row < m_rowRanges.size(); ++row) {
+        const auto range = m_rowRanges[row];
+        if (offset >= range.first && offset < range.first + range.second) {
+            m_table->selectionModel()->setCurrentIndex(
+                m_table->model()->index(row, 0),
+                QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+            m_table->scrollTo(m_table->model()->index(row, 0), QAbstractItemView::PositionAtCenter);
+            emit fieldRangeSelected(range.first, range.second);
+            break;
+        }
+    }
 }

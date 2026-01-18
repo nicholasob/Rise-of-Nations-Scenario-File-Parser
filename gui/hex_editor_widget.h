@@ -46,6 +46,9 @@ public slots:
     void findPrevious();
     void handleCellClicked(int row, int column);
 
+signals:
+    void byteOffsetSelected(qulonglong offset);
+
 private slots:
     void onSearchTextChanged();
     void onDisplayModeChanged(int index);

@@ -74,6 +74,7 @@ public:
     // Chunk queries
     const Chunk* findChunkAtOffset(size_t offset) const;
     const Chunk* findChunkContainingOffset(size_t offset, const Chunk* parent = nullptr) const;
+    qulonglong getChunkDataStart(const Chunk& chunk) const;
     void selectChunk(const Chunk* chunk);
 
     // Modification tracking

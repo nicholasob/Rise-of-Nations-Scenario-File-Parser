@@ -264,6 +264,13 @@ const Chunk* ScenarioDocument::findChunkAtOffsetRecursive(size_t offset, const C
     return nullptr;
 }
 
+qulonglong ScenarioDocument::getChunkDataStart(const Chunk& chunk) const
+{
+    // Data starts after header + children; chunk.header.chunk_size includes everything
+    size_t dataSize = chunk.data.size();
+    return static_cast<qulonglong>(chunk.file_offset + (chunk.header.chunk_size - dataSize));
+}
+
 void ScenarioDocument::selectChunk(const Chunk* chunk)
 {
     if (chunk) {
@@ -518,7 +525,8 @@ QVector<FieldChange> ScenarioDocument::computeFieldChanges(
             fc.fieldName = QString::fromStdString(field.name);
             fc.oldValue = formatFieldValue(field, *oldC);
             fc.newValue = formatFieldValue(field, *newC);
-            fc.offset = static_cast<qulonglong>(newC->file_offset + field.offset);
+            const qulonglong dataStart = getChunkDataStart(*newC);
+            fc.offset = dataStart + static_cast<qulonglong>(field.offset);
             fc.length = static_cast<qulonglong>(field.size);
             changes.push_back(std::move(fc));
         }

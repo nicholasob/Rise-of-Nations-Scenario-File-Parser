@@ -11,13 +11,37 @@ struct ScenarioHeader0x6C : public ByteConvertible<ScenarioHeader0x6C> {
 
     char16_t scenario_name[100];  // local_258 - 200 bytes (100 wchar_t) - wide-char scenario name/desc
 
+    /*
+        11 = In-game Diplomacy (OFF)
+        12 = In-game Diplomacy (ON)
+    */
     uint32_t player_setting1;     // local_190 = PTR_DAT_00c061ec[0x24]
-    uint32_t player_setting2;     // local_18c = PTR_DAT_00c061ec[0x2a]
+    /*
+        0 = Standard
+        1 = Custom
+        2 = No Rush
+        3 = Sudden Death
+        4 = Deathmatch
+        5 = Nomad
+        6 = Peaceful Tech Race
+        7 = Assassin!
+        8 = Barbarians at the Gates!
+        9 = Fast Game
+        10 = Scenario
+        11 = Info Age Deathmatch
+    */
+    uint32_t game_rules;          // local_18c = PTR_DAT_00c061ec[0x2a]
     uint32_t player_setting3;     // local_188 = PTR_DAT_00c061ec[0x25]
     uint32_t player_setting4;     // local_184 = PTR_DAT_00c061ec[0x26]
 
     uint32_t global_setting;      // local_180 = *(PTR_DAT_00c06188 + 0x7c)
 
+    /*
+        &= 0001 (Load Scenario Script)
+        &= 0010 (Allow Rule Overrides)
+        &= 0100 (Disable Unique Units)
+        &= 1000 (Disable Nation Powers)
+    */
     uint32_t game_flags;          // local_17c — various game mode flags
                                   // plus:
                                   // + |= 4 if (PTR_DAT_00c061ec[0x20] & 8)
@@ -25,41 +49,154 @@ struct ScenarioHeader0x6C : public ByteConvertible<ScenarioHeader0x6C> {
                                   // + |= 2 if (some global != 0)
 
     uint32_t ai_difficulty;       // local_178 = PTR_DAT_00c061ec[0x29]
-    uint32_t victory_condition;   // local_174 = PTR_DAT_00c061ec[0x34]
-    uint32_t map_type;            // local_170 = PTR_DAT_00c061ec[0x36]
-    uint32_t setting1;            // local_16c = PTR_DAT_00c061ec[0x30]
-    uint32_t setting2;            // local_168 = PTR_DAT_00c061ec[0x37]
-    uint32_t setting3;            // local_164 = PTR_DAT_00c061ec[0x38]
-    uint32_t setting4;            // local_160 = PTR_DAT_00c061ec[0x3a]
-    uint32_t setting5;            // local_15c = PTR_DAT_00c061ec[0x3c]
-    uint32_t setting6;            // local_158 = PTR_DAT_00c061ec[0x39]
-    uint32_t setting7;            // local_154 = PTR_DAT_00c061ec[0x3b]
-    uint32_t setting8;            // local_150 = PTR_DAT_00c061ec[0x3e]
+    /*
+        0 = Ancient Age
+        1 = Classical Age
+        2 = Medieval Age
+        3 = Gunpowder Age
+        4 = Enlightenment Age
+        5 = Industrial Age
+        6 = Modern Age
+        7 = Information Age
+        8 = All Technologies
+    */
+    uint32_t start_age;           // local_174 = PTR_DAT_00c061ec[0x34]  -  LOW: 0, HIGH: 7
+    /*
+        0 = Ancient Age
+        1 = Classical Age
+        2 = Medieval Age
+        3 = Gunpowder Age
+        4 = Enlightenment Age
+        5 = Industrial Age
+        6 = Modern Age
+        7 = Information Age
+        8 = All Technologies
+    */
+    uint32_t end_age;             // local_170 = PTR_DAT_00c061ec[0x36]  -  LOW: 0, HIGH: 7
+    /*
+        0 = No Ally LOS
+        1 = Normal
+        2 = Explored
+        3 = All visible
+    */
+    uint32_t reveal_map;            // local_16c = PTR_DAT_00c061ec[0x30]
+    /*
+        0 = Conquest
+        1 = Capital
+        2 = Sudden Death Capital
+        3 = Sudden Death
+    */
+    uint32_t elimination;            // local_168 = PTR_DAT_00c061ec[0x37]
+    /*
+        0 = Standard
+        1 = Sudden Death
+        2 = Conquest
+        3 = Score
+        4 = Time Limit
+        5 = Musical Chairs
+        6 = Wonder
+        7 = Territory
+        8 = Economic
+        9 = Tech Race
+        10 = Scenario Victory
+    */
+    uint32_t victory;            // local_164 = PTR_DAT_00c061ec[0x38]
+    /*
+        0 = 1000
+        1 = 2000
+        2 = 3000
+        3 = 4000
+        4 = 5000
+        5 = 6000
+        6 = 7000
+        7 = 8000
+        8 = 9000
+        9 = 10000
+        10 = 15000
+        11 = 20000
+    */
+    uint32_t score;            // local_160 = PTR_DAT_00c061ec[0x3a]
+    /*
+        0 = 15 Minutes
+        1 = 30 Minutes
+        2 = 45 Minutes
+        3 = 60 Minutes
+        4 = 90 Minutes
+        5 = 2 Hours
+        6 = 3 Hours
+        7 = 4 Hours
+        8 = Custom Scenario
+    */
+    uint32_t time_limit;            // local_15c = PTR_DAT_00c061ec[0x3c]
+    /*
+        0 = 1 Wonder Point
+        1 = 2 Wonder Points
+        2 = 3 Wonder Points
+        3 = 4 Wonder Points
+        4 = 6 Wonder Points
+        5 = 8 Wonder Points
+        6 = 10 Wonder Points
+        7 = 12 Wonder Points
+        8 = 14 Wonder Points
+        9 = 16 Wonder Points
+        10 = 20 Wonder Points
+        11 = 24 Wonder Points
+        12 = No Wonder Victory
+    */
+    uint32_t wonder_victory;            // local_158 = PTR_DAT_00c061ec[0x39]
+    /*
+        0 = 30% of World Territory
+        1 = 35% of World Territory
+        2 = 40% of World Territory
+        3 = 45% of World Territory
+        4 = 50% of World Territory
+        5 = 55% of World Territory
+        6 = 60% of World Territory
+        7 = 65% of World Territory
+        8 = 70% of World Territory
+        9 = 75% of World Territory
+        10 = 80% of World Territory
+        11 = 90% of World Territory
+        12 = No Territory Victory
+    */
+    uint32_t territory_goal;            // local_154 = PTR_DAT_00c061ec[0x3b]
+    /*
+        0 = +100 Average Income
+        1 = +200 Average Income
+        2 = +300 Average Income
+        3 = +400 Average Income
+        4 = +500 Average Income
+        5 = +600 Average Income
+        6 = +700 Average Income
+        7 = +800 Average Income
+        8 = +900 Average Income
+    */
+    uint32_t income_goal;            // local_150 = PTR_DAT_00c061ec[0x3e]
     uint32_t player_setting5;     // local_14c = PTR_DAT_00c061ec[0x32]
 
     //global blob 1 (DAT_00cc22e0 - 00cc22ec)
-    uint32_t global1_a;           // local_148
-    uint32_t global1_b;           // uStack_144
-    uint32_t global1_c;           // uStack_140
-    uint32_t global1_d;           // uStack_13c
+    uint32_t camera_start_position_X_nation_1;           // local_148
+    uint32_t camera_start_position_X_nation_2;           // uStack_144
+    uint32_t camera_start_position_X_nation_3;           // uStack_140
+    uint32_t camera_start_position_X_nation_4;           // uStack_13c
 
     //global blob 2 (DAT_00cc22f0 - 00cc22fc)
-    uint32_t global2_a;           // local_138
-    uint32_t global2_b;           // uStack_134
-    uint32_t global2_c;           // uStack_130
-    uint32_t global2_d;           // uStack_12c
+    uint32_t camera_start_position_X_nation_5;           // local_138
+    uint32_t camera_start_position_X_nation_6;           // uStack_134
+    uint32_t camera_start_position_X_nation_7;           // uStack_130
+    uint32_t camera_start_position_X_nation_8;           // uStack_12c
 
     //global blob 3 (DAT_00cc0300 - 00cc030c)
-    uint32_t global3_a;           // local_128
-    uint32_t global3_b;           // uStack_124
-    uint32_t global3_c;           // uStack_120
-    uint32_t global3_d;           // uStack_11c
+    uint32_t camera_start_position_Y_nation_1;           // local_128
+    uint32_t camera_start_position_Y_nation_2;           // uStack_124
+    uint32_t camera_start_position_Y_nation_3;           // uStack_120
+    uint32_t camera_start_position_Y_nation_4;           // uStack_11c
 
     //global blob 4 (DAT_00cc0310 - 00cc031c)
-    uint32_t global4_a;           // local_118
-    uint32_t global4_b;           // uStack_114
-    uint32_t global4_c;           // uStack_110
-    uint32_t global4_d;           // uStack_10c
+    uint32_t camera_start_position_Y_nation_5;           // local_118
+    uint32_t camera_start_position_Y_nation_6;           // uStack_114
+    uint32_t camera_start_position_Y_nation_7;           // uStack_110
+    uint32_t camera_start_position_Y_nation_8;           // uStack_10c
 
     //global blob 5 (DAT_00cc21c0 - 00cc21cc)
     uint32_t global5_a;           // local_108
@@ -74,7 +211,15 @@ struct ScenarioHeader0x6C : public ByteConvertible<ScenarioHeader0x6C> {
     uint32_t global6_d;           // uStack_ec
 
     uint32_t some_setting;        // local_e8 = *(PTR_DAT_00c06188 + 0x34)
-    uint32_t extra_flag;          // local_e4 = PTR_DAT_00c061ec[0x31]
+    /*
+        0 = 50
+        1 = 75
+        2 = 100
+        3 = 125
+        4 = 150
+        5 = 200
+    */
+    uint32_t Population;          // local_e4 = PTR_DAT_00c061ec[0x31]
 };
 #pragma pack(pop)
 static_assert(sizeof(ScenarioHeader0x6C) == 384, "ScenarioHeader must be exactly 384 bytes");

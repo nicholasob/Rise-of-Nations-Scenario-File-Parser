@@ -120,9 +120,9 @@ The properties panel now shows:
   - `version`, `magic` (0xf00dcafe)
   - `scenario_name` (UTF-16)
   - Multiple player settings, global settings, game flags
-  - `ai_difficulty`, `victory_condition`, `map_type`
+  - `ai_difficulty`, `start_age`, `end_age`
   - 24 global setting values
-  - `some_setting`, `extra_flag`
+  - `some_setting`, `Population`
 
 ## Technical Details
 
