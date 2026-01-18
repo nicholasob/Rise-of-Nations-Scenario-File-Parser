@@ -2,7 +2,8 @@
 #define HEX_EDITOR_WIDGET_H
 
 #include <QWidget>
-#include <QTableWidget>
+#include <QAbstractTableModel>
+#include <QTableView>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QComboBox>
@@ -16,6 +17,9 @@
 class ScenarioDocument;
 struct Chunk;
 struct ByteChange;
+
+class HexEditorWidget;
+class HexTableModel;
 
 /**
  * @brief Hex editor widget with color highlighting and search
@@ -43,14 +47,13 @@ public slots:
     void handleCellClicked(int row, int column);
 
 private slots:
-    void onCellChanged(int row, int column);
     void onSearchTextChanged();
     void onDisplayModeChanged(int index);
 
 private:
+    friend class HexTableModel;
     void setupUI();
     void populateTable();
-    void updateRow(int row);
     void performSearch(bool forward);
     QString formatOffset(size_t offset) const;
     QString byteToHex(uint8_t b) const;
@@ -58,7 +61,8 @@ private:
     QString bytesToUtf16(uint8_t b1, uint8_t b2) const;
 
     ScenarioDocument *m_document;
-    QTableWidget *m_table;
+    HexTableModel *m_model;
+    QTableView *m_table;
     QLineEdit *m_searchEdit;
     QPushButton *m_findNextBtn;
     QPushButton *m_findPrevBtn;

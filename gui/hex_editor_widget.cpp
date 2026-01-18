@@ -8,8 +8,156 @@
 #include <QScrollBar>
 #include <QMessageBox>
 #include <QToolTip>
+#include <QTableView>
+#include <QAbstractTableModel>
+#include <QItemSelectionModel>
 #include <algorithm>
 #include <cctype>
+
+// Virtualized table model for hex view
+class HexTableModel : public QAbstractTableModel
+{
+public:
+    explicit HexTableModel(HexEditorWidget *owner, QObject *parent = nullptr)
+        : QAbstractTableModel(parent)
+        , m_owner(owner)
+    {}
+
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override
+    {
+        if (parent.isValid() || !m_owner || !m_owner->m_document) {
+            return 0;
+        }
+        size_t dataSize = m_owner->m_document->getDataSize();
+        if (dataSize == 0) {
+            return 0;
+        }
+        return static_cast<int>((dataSize + HexEditorWidget::BYTES_PER_ROW - 1) / HexEditorWidget::BYTES_PER_ROW);
+    }
+
+    int columnCount(const QModelIndex &parent = QModelIndex()) const override
+    {
+        Q_UNUSED(parent);
+        return 18; // Offset + 16 bytes + Text
+    }
+
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const override
+    {
+        if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
+            if (section == 0) return "Offset";
+            if (section >= 1 && section <= 16) {
+                return QString("%1").arg(section - 1, 2, 16, QChar('0')).toUpper();
+            }
+            if (section == 17) return "Text";
+        }
+        return {};
+    }
+
+    QVariant data(const QModelIndex &index, int role) const override
+    {
+        if (!index.isValid() || !m_owner || !m_owner->m_document) {
+            return {};
+        }
+
+        const int row = index.row();
+        const int col = index.column();
+        const size_t baseOffset = static_cast<size_t>(row) * HexEditorWidget::BYTES_PER_ROW;
+        const size_t dataSize = m_owner->m_document->getDataSize();
+
+        if (role == Qt::DisplayRole) {
+            if (col == 0) {
+                return m_owner->formatOffset(baseOffset);
+            }
+            if (col >= 1 && col <= 16) {
+                size_t offset = baseOffset + (col - 1);
+                if (offset < dataSize) {
+                    uint8_t b = m_owner->m_document->getByteAt(offset);
+                    return m_owner->byteToHex(b);
+                }
+                return QString();
+            }
+            if (col == 17) {
+                QString textRepr;
+                for (int i = 0; i < HexEditorWidget::BYTES_PER_ROW; ++i) {
+                    size_t offset = baseOffset + i;
+                    if (offset >= dataSize) break;
+                    uint8_t b = m_owner->m_document->getByteAt(offset);
+                    if (m_owner->m_utf16Mode && i % 2 == 0 && offset + 1 < dataSize) {
+                        uint8_t b2 = m_owner->m_document->getByteAt(offset + 1);
+                        textRepr += m_owner->bytesToUtf16(b, b2);
+                    } else if (!m_owner->m_utf16Mode) {
+                        textRepr += m_owner->byteToAscii(b);
+                    }
+                }
+                return textRepr;
+            }
+        }
+
+        if (role == Qt::TextAlignmentRole) {
+            if (col == 0) return QVariant(Qt::AlignLeft | Qt::AlignVCenter);
+            if (col >= 1 && col <= 16) return QVariant(Qt::AlignCenter);
+        }
+
+        if (role == Qt::BackgroundRole && col >= 1 && col <= 16) {
+            size_t offset = baseOffset + (col - 1);
+            if (offset < dataSize) {
+                // Diff highlighting
+                for (const auto& range : m_owner->m_diffRanges) {
+                    const auto start = static_cast<size_t>(range.first);
+                    const auto len = static_cast<size_t>(range.second);
+                    if (offset >= start && offset < start + len) {
+                        return QBrush(QColor(255, 99, 71, 140)); // Tomato tint
+                    }
+                }
+
+                // Selection highlight
+                if (offset >= m_owner->m_highlightStart &&
+                    offset < m_owner->m_highlightStart + m_owner->m_highlightLength) {
+                    return QBrush(QColor(255, 255, 0, 100)); // Yellow
+                }
+
+                // Chunk color
+                const Chunk* chunk = m_owner->m_document->findChunkContainingOffset(offset);
+                if (chunk) {
+                    auto& metadata = ChunkMetadata::instance();
+                    QColor color = metadata.getColorForChunk(chunk->header.chunk_type_identifier);
+                    return QBrush(color);
+                }
+            }
+        }
+
+        if (role == Qt::ToolTipRole && col >= 1 && col <= 16) {
+            size_t offset = baseOffset + (col - 1);
+            if (offset < dataSize && m_owner->m_byteChanges.contains(static_cast<qulonglong>(offset))) {
+                const auto pair = m_owner->m_byteChanges.value(static_cast<qulonglong>(offset));
+                QString tip = "Changed byte ";
+                if (pair.first >= 0) {
+                    tip += m_owner->byteToHex(static_cast<uint8_t>(pair.first));
+                } else {
+                    tip += "<none>";
+                }
+                tip += " -> ";
+                if (pair.second >= 0) {
+                    tip += m_owner->byteToHex(static_cast<uint8_t>(pair.second));
+                } else {
+                    tip += "<removed>";
+                }
+                return tip;
+            }
+        }
+
+        return {};
+    }
+
+    void refresh()
+    {
+        beginResetModel();
+        endResetModel();
+    }
+
+private:
+    HexEditorWidget *m_owner;
+};
 
 HexEditorWidget::HexEditorWidget(ScenarioDocument *document, QWidget *parent)
     : QWidget(parent)
@@ -75,36 +223,27 @@ void HexEditorWidget::setupUI()
 
     mainLayout->addLayout(searchLayout);
 
-    // Hex table
-    m_table = new QTableWidget(this);
-    m_table->setColumnCount(18); // Offset + 16 bytes + Text
-
-    QStringList headers;
-    headers << "Offset";
-    for (int i = 0; i < 16; ++i) {
-        headers << QString("%1").arg(i, 2, 16, QChar('0')).toUpper();
-    }
-    headers << "Text";
-    m_table->setHorizontalHeaderLabels(headers);
-
-    // Set column widths
-    m_table->setColumnWidth(0, 100);  // Offset
-    for (int i = 1; i <= 16; ++i) {
-        m_table->setColumnWidth(i, 35);  // Hex bytes
-    }
-    m_table->setColumnWidth(17, 200); // Text
-
+    // Hex table (virtualized)
+    m_model = new HexTableModel(this, this);
+    m_table = new QTableView(this);
+    m_table->setModel(m_model);
+    m_table->horizontalHeader()->setStretchLastSection(true);
     m_table->verticalHeader()->setVisible(false);
     m_table->setAlternatingRowColors(true);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_table->setMouseTracking(true); // Enable hover events
-    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers); // Read-only for minimal build
-    connect(m_table, &QTableWidget::cellClicked,
-            this, &HexEditorWidget::handleCellClicked);
-
-    // Disabled for minimal build - re-enable for editing support
-    // connect(m_table, &QTableWidget::cellChanged,
-    //         this, &HexEditorWidget::onCellChanged);
+    m_table->setSelectionBehavior(QAbstractItemView::SelectItems);
+    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_table->setMouseTracking(true);
+    m_table->horizontalHeader()->setDefaultSectionSize(40);
+    m_table->setColumnWidth(0, 100);
+    for (int i = 1; i <= 16; ++i) {
+        m_table->setColumnWidth(i, 35);
+    }
+    m_table->setColumnWidth(17, 200);
+    connect(m_table, &QTableView::clicked,
+            this, [this](const QModelIndex &index) {
+                handleCellClicked(index.row(), index.column());
+            });
 
     mainLayout->addWidget(m_table);
 }
@@ -117,110 +256,11 @@ void HexEditorWidget::refresh()
 
 void HexEditorWidget::populateTable()
 {
-    m_table->blockSignals(true); // Prevent triggering cellChanged during population
-
     size_t dataSize = m_document->getDataSize();
-    if (dataSize == 0) {
-        m_table->setRowCount(0);
-        m_table->blockSignals(false);
-        return;
+    if (m_model) {
+        m_model->refresh();
     }
-
-    int numRows = (dataSize + BYTES_PER_ROW - 1) / BYTES_PER_ROW;
-    m_table->setRowCount(numRows);
-
-    for (int row = 0; row < numRows; ++row) {
-        updateRow(row);
-    }
-
-    m_table->blockSignals(false);
     m_statusLabel->setText(QString("Total size: %1 bytes").arg(dataSize));
-}
-
-void HexEditorWidget::updateRow(int row)
-{
-    size_t baseOffset = row * BYTES_PER_ROW;
-    size_t dataSize = m_document->getDataSize();
-
-    // Offset column
-    QTableWidgetItem *offsetItem = new QTableWidgetItem(formatOffset(baseOffset));
-    offsetItem->setFlags(Qt::ItemIsEnabled);
-    offsetItem->setBackground(QBrush(QColor(240, 240, 240)));
-    m_table->setItem(row, 0, offsetItem);
-
-    // Hex bytes
-    QString textRepr;
-    for (int col = 0; col < BYTES_PER_ROW; ++col) {
-        size_t offset = baseOffset + col;
-        QTableWidgetItem *item = new QTableWidgetItem();
-
-        if (offset < dataSize) {
-            uint8_t b = m_document->getByteAt(offset);
-            item->setText(byteToHex(b));
-            item->setTextAlignment(Qt::AlignCenter);
-
-            bool diffHit = false;
-            for (const auto& range : m_diffRanges) {
-                const auto start = static_cast<size_t>(range.first);
-                const auto len = static_cast<size_t>(range.second);
-                if (offset >= start && offset < start + len) {
-                    item->setBackground(QBrush(QColor(255, 99, 71, 140))); // Tomato tint for changes
-                    diffHit = true;
-                    break;
-                }
-            }
-
-            // Check if this byte is in highlighted range
-            if (!diffHit && offset >= m_highlightStart && offset < m_highlightStart + m_highlightLength) {
-                item->setBackground(QBrush(QColor(255, 255, 0, 100))); // Yellow highlight
-            } else if (!diffHit) {
-                // Color based on chunk
-                const Chunk* chunk = m_document->findChunkContainingOffset(offset);
-                if (chunk) {
-                    auto& metadata = ChunkMetadata::instance();
-                    QColor color = metadata.getColorForChunk(chunk->header.chunk_type_identifier);
-                    item->setBackground(QBrush(color));
-                }
-            }
-
-            // Build text representation
-            if (m_utf16Mode && col % 2 == 0 && offset + 1 < dataSize) {
-                uint8_t b2 = m_document->getByteAt(offset + 1);
-                textRepr += bytesToUtf16(b, b2);
-            } else if (!m_utf16Mode) {
-                textRepr += byteToAscii(b);
-            }
-
-            // Tooltip for changes
-            if (m_byteChanges.contains(static_cast<qulonglong>(offset))) {
-                const auto pair = m_byteChanges.value(static_cast<qulonglong>(offset));
-                QString tip = "Changed byte";
-                if (pair.first >= 0) {
-                    tip += QString(" %1").arg(byteToHex(static_cast<uint8_t>(pair.first)));
-                } else {
-                    tip += " <none>";
-                }
-                tip += " -> ";
-                if (pair.second >= 0) {
-                    tip += QString("%1").arg(byteToHex(static_cast<uint8_t>(pair.second)));
-                } else {
-                    tip += "<removed>";
-                }
-                item->setToolTip(tip);
-            }
-        } else {
-            item->setFlags(Qt::ItemIsEnabled);
-            item->setBackground(QBrush(QColor(250, 250, 250)));
-        }
-
-        m_table->setItem(row, col + 1, item);
-    }
-
-    // Text column
-    QTableWidgetItem *textItem = new QTableWidgetItem(textRepr);
-    textItem->setFlags(Qt::ItemIsEnabled);
-    textItem->setFont(QFont("Courier New", 9));
-    m_table->setItem(row, 17, textItem);
 }
 
 void HexEditorWidget::handleChunkSelected(const Chunk* chunk)
@@ -293,7 +333,11 @@ void HexEditorWidget::showByteChanges(const QVector<ByteChange>& changes)
 void HexEditorWidget::scrollToOffset(size_t offset)
 {
     int row = offset / BYTES_PER_ROW;
-    m_table->scrollToItem(m_table->item(row, 0), QAbstractItemView::PositionAtCenter);
+    if (m_model && m_table && row < m_model->rowCount()) {
+        QModelIndex idx = m_model->index(row, 0);
+        m_table->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+        m_table->setCurrentIndex(idx);
+    }
 }
 
 void HexEditorWidget::highlightRange(size_t start, size_t length)
@@ -312,47 +356,6 @@ void HexEditorWidget::setDisplayMode(bool utf16Mode)
 void HexEditorWidget::onDisplayModeChanged(int index)
 {
     setDisplayMode(index == 1); // 0 = ASCII, 1 = UTF-16
-}
-
-void HexEditorWidget::onCellChanged(int row, int column)
-{
-    // Only allow editing hex byte columns (1-16)
-    if (column < 1 || column > 16) {
-        return;
-    }
-
-    size_t offset = row * BYTES_PER_ROW + (column - 1);
-    if (offset >= m_document->getDataSize()) {
-        return;
-    }
-
-    QTableWidgetItem *item = m_table->item(row, column);
-    if (!item) {
-        return;
-    }
-
-    QString text = item->text().trimmed();
-
-    // Validate hex input
-    if (text.length() != 2) {
-        refresh(); // Reset to original value
-        return;
-    }
-
-    bool ok;
-    uint8_t value = text.toUInt(&ok, 16);
-    if (!ok) {
-        refresh(); // Reset to original value
-        return;
-    }
-
-    // Update document
-    try {
-        m_document->setByteAt(offset, value);
-    } catch (const std::exception& e) {
-        QMessageBox::warning(this, "Error", QString("Failed to update byte: %1").arg(e.what()));
-        refresh();
-    }
 }
 
 void HexEditorWidget::onSearchTextChanged()
