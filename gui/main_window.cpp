@@ -122,6 +122,16 @@ void MainWindow::createActions()
     m_saveAsAction->setEnabled(false);
     connect(m_saveAsAction, &QAction::triggered, this, &MainWindow::saveFileAs);
 
+    m_ignoreStringPaddingDiffAction = new QAction(tr("Ignore string padding diffs"), this);
+    m_ignoreStringPaddingDiffAction->setCheckable(true);
+    m_ignoreStringPaddingDiffAction->setChecked(true);
+    connect(m_ignoreStringPaddingDiffAction, &QAction::toggled, this, [this](bool checked) {
+        m_document->setIgnoreStringPaddingDiff(checked);
+        statusBar()->showMessage(checked
+            ? tr("Ignoring string padding when computing diffs")
+            : tr("String padding diffs are now visible"), 3000);
+    });
+
     m_exitAction = new QAction(tr("E&xit"), this);
     m_exitAction->setShortcut(QKeySequence::Quit);
     m_exitAction->setStatusTip(tr("Exit the application"));
@@ -148,6 +158,7 @@ void MainWindow::createMenus()
 
     QMenu *editMenu = menuBar()->addMenu(tr("&Edit"));
     editMenu->addAction(m_highLevelEditorAction);
+    editMenu->addAction(m_ignoreStringPaddingDiffAction);
 
     QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
     helpMenu->addAction(m_aboutAction);
@@ -378,6 +389,9 @@ void MainWindow::loadSettings()
     restoreGeometry(settings.value("geometry").toByteArray());
     restoreState(settings.value("windowState").toByteArray());
     m_mainSplitter->restoreState(settings.value("splitterState").toByteArray());
+    const bool ignorePadding = settings.value("ignoreStringPaddingDiff", true).toBool();
+    m_ignoreStringPaddingDiffAction->setChecked(ignorePadding);
+    m_document->setIgnoreStringPaddingDiff(ignorePadding);
 }
 
 void MainWindow::saveSettings()
@@ -386,6 +400,7 @@ void MainWindow::saveSettings()
     settings.setValue("geometry", saveGeometry());
     settings.setValue("windowState", saveState());
     settings.setValue("splitterState", m_mainSplitter->saveState());
+    settings.setValue("ignoreStringPaddingDiff", m_ignoreStringPaddingDiffAction->isChecked());
 }
 
 bool MainWindow::maybeSave()

@@ -85,6 +85,8 @@ public:
     ScenarioEditor* getEditor() { return m_editor.get(); }
     bool autoReloadEnabled() const { return m_autoReloadEnabled; }
     void setAutoReloadEnabled(bool enabled) { m_autoReloadEnabled = enabled; }
+    bool ignoreStringPaddingDiff() const { return m_ignoreStringPaddingDiff; }
+    void setIgnoreStringPaddingDiff(bool enabled) { m_ignoreStringPaddingDiff = enabled; }
 
     // Refresh data after modifications
     void refreshFromEditor();
@@ -118,6 +120,7 @@ private:
     int m_reloadRetryMax;
     int m_reloadRetryDelayMs;
     QString m_lastLoadError;
+    bool m_ignoreStringPaddingDiff{true};
 
     // Helper methods
     void clearData();
@@ -125,10 +128,18 @@ private:
     void updateFileWatcher();
     QVector<QPair<qulonglong, qulonglong>> computeDiffRanges(
         const std::vector<uint8_t>& oldData,
-        const std::vector<uint8_t>& newData) const;
+        const std::vector<uint8_t>& newData,
+        const std::vector<bool>& ignoreMask) const;
     QVector<ByteChange> computeByteChanges(
         const std::vector<uint8_t>& oldData,
-        const std::vector<uint8_t>& newData) const;
+        const std::vector<uint8_t>& newData,
+        const std::vector<Chunk>& oldChunks,
+        const std::vector<Chunk>& newChunks) const;
+    std::vector<bool> buildIgnoreMaskForStringPadding(
+        const std::vector<uint8_t>& oldData,
+        const std::vector<uint8_t>& newData,
+        const std::vector<Chunk>& oldChunks,
+        const std::vector<Chunk>& newChunks) const;
     void scheduleReloadAttempt(const QString& path);
     void attemptReloadFromWatcher();
     struct FlatChunkInfo {

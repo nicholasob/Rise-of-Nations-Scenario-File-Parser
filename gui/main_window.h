@@ -67,6 +67,7 @@ private:
     QAction *m_exitAction;
     QAction *m_aboutAction;
     QAction *m_highLevelEditorAction;
+    QAction *m_ignoreStringPaddingDiffAction;
 
     // State
     QString m_currentFilePath;

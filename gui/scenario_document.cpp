@@ -320,9 +320,12 @@ void ScenarioDocument::attemptReloadFromWatcher()
 
     if (loadFile(path)) {
         emit fileReloaded(path);
-        emit fileReloadDiff(computeDiffRanges(previousData, m_data));
+        std::vector<bool> ignoreMask = m_ignoreStringPaddingDiff
+            ? buildIgnoreMaskForStringPadding(previousData, m_data, previousChunks, m_chunks)
+            : std::vector<bool>();
+        emit fileReloadDiff(computeDiffRanges(previousData, m_data, ignoreMask));
         emit fileReloadFieldChanges(computeFieldChanges(previousChunks, m_chunks));
-        emit fileReloadByteChanges(computeByteChanges(previousData, m_data));
+        emit fileReloadByteChanges(computeByteChanges(previousData, m_data, previousChunks, m_chunks));
         m_pendingReloadPath.clear();
         return;
     }
@@ -365,7 +368,8 @@ void ScenarioDocument::updateFileWatcher()
 
 QVector<QPair<qulonglong, qulonglong>> ScenarioDocument::computeDiffRanges(
     const std::vector<uint8_t>& oldData,
-    const std::vector<uint8_t>& newData) const
+    const std::vector<uint8_t>& newData,
+    const std::vector<bool>& ignoreMask) const
 {
     QVector<QPair<qulonglong, qulonglong>> ranges;
 
@@ -376,8 +380,9 @@ QVector<QPair<qulonglong, qulonglong>> ScenarioDocument::computeDiffRanges(
         const bool oldValid = idx < oldData.size();
         const bool newValid = idx < newData.size();
         const bool equal = oldValid && newValid && oldData[idx] == newData[idx];
+        const bool ignore = !ignoreMask.empty() && idx < ignoreMask.size() && ignoreMask[idx];
 
-        if (oldValid && newValid && equal) {
+        if (ignore || (oldValid && newValid && equal)) {
             ++idx;
             continue;
         }
@@ -388,7 +393,12 @@ QVector<QPair<qulonglong, qulonglong>> ScenarioDocument::computeDiffRanges(
             const bool oValid = idx < oldData.size();
             const bool nValid = idx < newData.size();
             const bool eq = oValid && nValid && oldData[idx] == newData[idx];
-            if (oValid && nValid && eq) {
+            const bool ignore = !ignoreMask.empty() && idx < ignoreMask.size() && ignoreMask[idx];
+            if ((oValid && nValid && eq) || ignore) {
+                if (ignore) {
+                    ++idx;
+                    continue;
+                }
                 break;
             }
             ++idx;
@@ -401,18 +411,105 @@ QVector<QPair<qulonglong, qulonglong>> ScenarioDocument::computeDiffRanges(
     return ranges;
 }
 
+std::vector<bool> ScenarioDocument::buildIgnoreMaskForStringPadding(
+    const std::vector<uint8_t>& oldData,
+    const std::vector<uint8_t>& newData,
+    const std::vector<Chunk>& oldChunks,
+    const std::vector<Chunk>& newChunks) const
+{
+    const size_t maxSize = std::max(oldData.size(), newData.size());
+    std::vector<bool> ignore(maxSize, false);
+
+    QVector<FlatChunkInfo> oldFlat;
+    QVector<FlatChunkInfo> newFlat;
+    flattenChunks(oldChunks, oldFlat);
+    flattenChunks(newChunks, newFlat);
+    const int commonCount = std::min(oldFlat.size(), newFlat.size());
+    ChunkMetadata& metadata = ChunkMetadata::instance();
+
+    auto markIgnoreRange = [&ignore](qulonglong start, qulonglong end) {
+        const size_t maxIdx = ignore.size();
+        for (qulonglong i = start; i < end && i < maxIdx; ++i) {
+            ignore[static_cast<size_t>(i)] = true;
+        }
+    };
+
+    auto firstNull = [](const std::vector<std::byte>& data, size_t start, size_t len) -> size_t {
+        for (size_t i = 0; i < len; ++i) {
+            if (start + i >= data.size()) break;
+            if (static_cast<uint8_t>(data[start + i]) == 0) {
+                return i;
+            }
+        }
+        return len;
+    };
+
+    for (int i = 0; i < commonCount; ++i) {
+        const Chunk* oldC = oldFlat[i].chunk;
+        const Chunk* newC = newFlat[i].chunk;
+        if (oldC->header.chunk_type_identifier != newC->header.chunk_type_identifier) {
+            continue;
+        }
+        const ChunkInfo* info = metadata.getChunkInfo(newC->header.chunk_type_identifier);
+        if (!info) continue;
+        const size_t elementSize = info->dataSize;
+        size_t oldElements = (elementSize > 0 && oldC->data.size() >= elementSize)
+            ? oldC->data.size() / elementSize : 1;
+        size_t newElements = (elementSize > 0 && newC->data.size() >= elementSize)
+            ? newC->data.size() / elementSize : 1;
+        const size_t compareElements = std::min(oldElements, newElements);
+
+        for (size_t elemIdx = 0; elemIdx < compareElements; ++elemIdx) {
+            const size_t baseOld = elementSize > 0 ? elemIdx * elementSize : 0;
+            const size_t baseNew = elementSize > 0 ? elemIdx * elementSize : 0;
+
+            for (const auto& field : info->fields) {
+                const bool isString = field.type.find("char") != std::string::npos;
+                if (!isString) continue;
+
+                if (baseOld + field.offset + field.size > oldC->data.size() ||
+                    baseNew + field.offset + field.size > newC->data.size()) {
+                    continue;
+                }
+
+                const size_t nullOld = firstNull(oldC->data, baseOld + field.offset, field.size);
+                const size_t nullNew = firstNull(newC->data, baseNew + field.offset, field.size);
+                const size_t cutoff = std::min(nullOld, nullNew);
+                const qulonglong dataStartOld = getChunkDataStart(*oldC);
+                const qulonglong dataStartNew = getChunkDataStart(*newC);
+                const qulonglong fieldStartOld = dataStartOld + static_cast<qulonglong>(baseOld + field.offset);
+                const qulonglong fieldStartNew = dataStartNew + static_cast<qulonglong>(baseNew + field.offset);
+
+                markIgnoreRange(fieldStartOld + cutoff, fieldStartOld + field.size);
+                markIgnoreRange(fieldStartNew + cutoff, fieldStartNew + field.size);
+            }
+        }
+    }
+
+    return ignore;
+}
 QVector<ByteChange> ScenarioDocument::computeByteChanges(
     const std::vector<uint8_t>& oldData,
-    const std::vector<uint8_t>& newData) const
+    const std::vector<uint8_t>& newData,
+    const std::vector<Chunk>& oldChunks,
+    const std::vector<Chunk>& newChunks) const
 {
     QVector<ByteChange> changes;
     const size_t maxSize = std::max(oldData.size(), newData.size());
+
+    std::vector<bool> ignore = m_ignoreStringPaddingDiff
+        ? buildIgnoreMaskForStringPadding(oldData, newData, oldChunks, newChunks)
+        : std::vector<bool>();
+
     for (size_t i = 0; i < maxSize; ++i) {
         const bool oldValid = i < oldData.size();
         const bool newValid = i < newData.size();
         const int oldVal = oldValid ? static_cast<int>(oldData[i]) : -1;
         const int newVal = newValid ? static_cast<int>(newData[i]) : -1;
         if (!oldValid || !newValid || oldVal != newVal) {
+            if (!ignore.empty() && ignore[i]) {
+                continue;
+            }
             changes.push_back(ByteChange{
                 static_cast<qulonglong>(i),
                 oldVal,
@@ -480,6 +577,16 @@ QVector<FieldChange> ScenarioDocument::computeFieldChanges(
         return QString("Chunk 0x%1").arg(static_cast<uint16_t>(type), 0, 16).toUpper();
     };
 
+    auto firstNull = [](const std::vector<std::byte>& data, size_t start, size_t len) -> size_t {
+        for (size_t i = 0; i < len; ++i) {
+            if (start + i >= data.size()) break;
+            if (static_cast<uint8_t>(data[start + i]) == 0) {
+                return i;
+            }
+        }
+        return len;
+    };
+
     for (int i = 0; i < commonCount; ++i) {
         const Chunk* oldC = oldFlat[i].chunk;
         const Chunk* newC = newFlat[i].chunk;
@@ -530,6 +637,26 @@ QVector<FieldChange> ScenarioDocument::computeFieldChanges(
 
                 if (!differs) {
                     continue;
+                }
+
+                // Skip padding-only differences for strings if configured
+                const bool isString = field.type.find("char") != std::string::npos;
+                if (isString && m_ignoreStringPaddingDiff) {
+                    const size_t nullOld = firstNull(oldC->data, baseOld + field.offset, field.size);
+                    const size_t nullNew = firstNull(newC->data, baseNew + field.offset, field.size);
+                    const size_t cutoff = std::min(nullOld, nullNew);
+
+                    bool differsWithinContent = false;
+                    for (size_t b = 0; b < cutoff; ++b) {
+                        if (static_cast<uint8_t>(oldC->data[baseOld + field.offset + b]) !=
+                            static_cast<uint8_t>(newC->data[baseNew + field.offset + b])) {
+                            differsWithinContent = true;
+                            break;
+                        }
+                    }
+                    if (!differsWithinContent) {
+                        continue; // only padding differed
+                    }
                 }
 
                 FieldChange fc;
