@@ -13,6 +13,9 @@
 #include <algorithm>
 #include <fstream>
 #include <stdexcept>
+#include <cstring>
+
+static const Chunk* findChunkByTypeRecursive(const std::vector<Chunk>& chunks, ChunkType type);
 
 ScenarioDocument::ScenarioDocument(QObject *parent)
     : QObject(parent)
@@ -68,6 +71,38 @@ bool ScenarioDocument::loadFile(const QString& filePath)
         m_dirty = false;
         updateFileWatcher();
 
+        // Validate TILE_PROPERTIES length against MAP_STRUCTURE total_tiles
+        const Chunk* mapStruct = findChunkByTypeRecursive(m_chunks, ChunkType::MAP_STRUCTURE);
+        const Chunk* tileProps = findChunkByTypeRecursive(m_chunks, ChunkType::TILE_PROPERTIES);
+        if (mapStruct && tileProps && mapStruct->data.size() >= sizeof(uint32_t)) {
+            uint32_t totalTiles = 0;
+            std::memcpy(&totalTiles, mapStruct->data.data(), sizeof(uint32_t));
+            const size_t expectedBytes = static_cast<size_t>(totalTiles) * 4;
+            const size_t actualBytes = tileProps->data.size();
+            if (expectedBytes != actualBytes) {
+                emit errorOccurred(QString("TILE_PROPERTIES size mismatch: expected %1 bytes (%2 tiles) but found %3 bytes")
+                    .arg(expectedBytes)
+                    .arg(totalTiles)
+                    .arg(actualBytes));
+            }
+        }
+
+        // Validate TERRAIN_TYPE length against TERRAIN_LAYOUT_DATA scaled_total_tiles
+        const Chunk* terrainLayout = findChunkByTypeRecursive(m_chunks, ChunkType::TERRAIN_LAYOUT_DATA);
+        const Chunk* terrainType = findChunkByTypeRecursive(m_chunks, ChunkType::TERRAIN_TYPE);
+        if (terrainLayout && terrainType && terrainLayout->data.size() >= sizeof(uint32_t)) {
+            uint32_t scaledTotalTiles = 0;
+            std::memcpy(&scaledTotalTiles, terrainLayout->data.data(), sizeof(uint32_t));
+            const size_t expectedBytes = static_cast<size_t>(scaledTotalTiles) * sizeof(uint16_t);
+            const size_t actualBytes = terrainType->data.size();
+            if (expectedBytes != actualBytes) {
+                emit errorOccurred(QString("TERRAIN_TYPE size mismatch: expected %1 bytes (%2 scaled tiles) but found %3 bytes")
+                    .arg(expectedBytes)
+                    .arg(scaledTotalTiles)
+                    .arg(actualBytes));
+            }
+        }
+
         emit dataLoaded();
         return true;
 
@@ -76,6 +111,21 @@ bool ScenarioDocument::loadFile(const QString& filePath)
         emit errorOccurred(QString("Error loading file: %1").arg(e.what()));
         return false;
     }
+}
+
+static const Chunk* findChunkByTypeRecursive(const std::vector<Chunk>& chunks, ChunkType type)
+{
+    for (const auto& c : chunks) {
+        if (c.header.chunk_type_identifier == type) {
+            return &c;
+        }
+        if (!c.children.empty()) {
+            if (const Chunk* found = findChunkByTypeRecursive(c.children, type)) {
+                return found;
+            }
+        }
+    }
+    return nullptr;
 }
 
 bool ScenarioDocument::saveFile(const QString& filePath, bool compress)

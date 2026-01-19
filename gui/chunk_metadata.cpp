@@ -75,7 +75,7 @@ void ChunkMetadata::registerChunks()
         colorMap
     );
 
-    ChunkInfo tileProps(ChunkType::TILE_PROPERTIES, "TILE_PROPERTIES", "Map", 0, colorMap);
+    ChunkInfo tileProps(ChunkType::TILE_PROPERTIES, "TILE_PROPERTIES", "Map", 4, colorMap);
     tileProps.fields.push_back(FieldInfo("properties", 0, 4, "uint32_t[]", "4 bytes per tile"));
     registerChunk(tileProps);
 
@@ -87,7 +87,7 @@ void ChunkMetadata::registerChunks()
         colorMap
     );
 
-    ChunkInfo terrainType(ChunkType::TERRAIN_TYPE, "TERRAIN_TYPE", "Map", 0, colorMap);
+    ChunkInfo terrainType(ChunkType::TERRAIN_TYPE, "TERRAIN_TYPE", "Map", 2, colorMap);
     terrainType.fields.push_back(FieldInfo("terrain_type", 0, 2, "uint16_t[]", "2 bytes per position"));
     registerChunk(terrainType);
 

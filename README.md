@@ -99,12 +99,17 @@ cmake --build build
 
 For faster builds on multi-core systems:
 
-**Windows:**
+**Windows (MSVC, default in this repo):**
 ```powershell
 cmake --build build --parallel
-OR GUI:
-cmake --build build-mingw --config Release --target scenario_viewer_gui -j4
 ```
+
+**Windows (MinGW, only if you configured with MinGW Qt/toolchain):**
+```powershell
+cmake -S . -B build-mingw -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_CLI=ON
+cmake --build build-mingw --parallel
+```
+> Use either MSVC or MinGW consistently; don’t mix an MSVC compiler with a MinGW Qt (or vice versa).
 
 **Linux/macOS:**
 ```bash
