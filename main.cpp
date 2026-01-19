@@ -752,7 +752,7 @@ int RunParseMode(int argc, char* argv[]) {
                             std::cout << "Successfully parsed unit type names" << std::endl;
                             std::cout << "Printing all names found: " << std::endl;
                             for(auto unit : unitNames.unit_names) {
-                                std::cout << ChunkParsers::ConvertChar16ToString(unit.nameaaaaaa, 256) << std::endl;
+                                std::cout << ChunkParsers::ConvertChar16ToString(unit.name, 256) << std::endl;
                             }
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing unit type names: " << e.what() << std::endl;
