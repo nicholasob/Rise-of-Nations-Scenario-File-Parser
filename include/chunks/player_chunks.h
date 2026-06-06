@@ -53,9 +53,9 @@ struct PlayerPropertiesChunk0x6B : public ByteConvertible<PlayerPropertiesChunk0
     uint32_t control_field;         // +0xDC: 4 bytes (0 = computer, 4 = human)
     uint32_t remaining_field2;      // +0xE0: 4 bytes  
     uint8_t color_index;            // +0xE4: 1 bytes - color index (0 = red, 1 = blue, etc)
-    uint8_t color_hex_1;           // 
-    uint8_t color_hex_2;
-    uint8_t color_hex_3;
+    uint8_t _pad_e5;                // +0xE5: uninitialized stack garbage in game writer - ignore
+    uint8_t _pad_e6;                // +0xE6: uninitialized stack garbage in game writer - ignore
+    uint8_t _pad_e7;                // +0xE7: uninitialized stack garbage in game writer - ignore
     /*
         0 = Easiest
         1 = Easy
@@ -78,9 +78,9 @@ struct PlayerPropertiesChunk0x6B : public ByteConvertible<PlayerPropertiesChunk0
         DESCRIBE_FIELD(uint32_t, control_field, "0=computer, 4=human")
         DESCRIBE_FIELD(uint32_t, remaining_field2, "Additional field")
         DESCRIBE_FIELD(uint8_t, color_index, "Color (0=red, 1=blue, etc)")
-        DESCRIBE_FIELD(uint8_t, color_hex_1, "Color component 1")
-        DESCRIBE_FIELD(uint8_t, color_hex_2, "Color component 2")
-        DESCRIBE_FIELD(uint8_t, color_hex_3, "Color component 3")
+        DESCRIBE_FIELD(uint8_t, _pad_e5, "Color component 1")
+        DESCRIBE_FIELD(uint8_t, _pad_e6, "Color component 2")
+        DESCRIBE_FIELD(uint8_t, _pad_e7, "Color component 3")
         DESCRIBE_FIELD(uint32_t, difficulty, "0-5 (Easiest to Toughest)")
     END_FIELD_DESCRIPTORS()
 };
