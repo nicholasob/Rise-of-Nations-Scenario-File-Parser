@@ -3,6 +3,8 @@
 
 #include <QWidget>
 #include <QTreeWidget>
+#include <QPoint>
+#include <QString>
 #include "scenario_document.h"
 
 /**
@@ -25,8 +27,12 @@ signals:
 
 private slots:
     void handleItemActivated(QTreeWidgetItem *item, int column);
+    void showContextMenu(const QPoint& pos);
+    void copySelectedRows();
+    void copyAllRows();
 
 private:
+    QString buildClipboardText(const QList<QTreeWidgetItem*>& items) const;
     QTreeWidget *m_tree;
 };
 
