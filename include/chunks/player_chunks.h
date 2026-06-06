@@ -78,9 +78,9 @@ struct PlayerPropertiesChunk0x6B : public ByteConvertible<PlayerPropertiesChunk0
         DESCRIBE_FIELD(uint32_t, control_field, "0=computer, 4=human")
         DESCRIBE_FIELD(uint32_t, remaining_field2, "Additional field")
         DESCRIBE_FIELD(uint8_t, color_index, "Color (0=red, 1=blue, etc)")
-        DESCRIBE_FIELD(uint8_t, _pad_e5, "Color component 1")
-        DESCRIBE_FIELD(uint8_t, _pad_e6, "Color component 2")
-        DESCRIBE_FIELD(uint8_t, _pad_e7, "Color component 3")
+        DESCRIBE_FIELD(uint8_t, _pad_e5, "Stack garbage")
+        DESCRIBE_FIELD(uint8_t, _pad_e6, "Stack garbage")
+        DESCRIBE_FIELD(uint8_t, _pad_e7, "Stack garbage")
         DESCRIBE_FIELD(uint32_t, difficulty, "0-5 (Easiest to Toughest)")
     END_FIELD_DESCRIPTORS()
 };
