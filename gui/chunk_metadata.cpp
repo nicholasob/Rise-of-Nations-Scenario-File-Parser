@@ -341,11 +341,13 @@ void ChunkMetadata::registerChunks()
 
     // AdvancedFeature1MountainFeatureEntry (12 bytes each)
     ChunkInfo featureData(ChunkType::FEATURE_DATA, "FEATURE_DATA", "Advanced", 12, colorAdvanced);
-    featureData.fields.push_back(FieldInfo("feature_id", 0, 4, "uint32_t", "Mountain/terrain feature ID"));
-    featureData.fields.push_back(FieldInfo("mountain_flag1", 4, 1, "uint8_t", "Mountain-related flag 1"));
-    featureData.fields.push_back(FieldInfo("mountain_flag2", 5, 1, "uint8_t", "Mountain-related flag 2"));
+    featureData.fields.push_back(FieldInfo("coord_a", 0, 1, "uint8_t", "Coordinate component A (x or y, TBD)"));
+    featureData.fields.push_back(FieldInfo("coord_b", 1, 1, "uint8_t", "Coordinate component B (x or y, TBD)"));
+    featureData.fields.push_back(FieldInfo("feature_family", 2, 2, "uint16_t", "Feature family (0x014F for mountains)"));
+    featureData.fields.push_back(FieldInfo("variant_index", 4, 1, "uint8_t", "Mountain type / variant index"));
+    featureData.fields.push_back(FieldInfo("unknown_flag", 5, 1, "uint8_t", "Unknown flag (always 0 so far)"));
     featureData.fields.push_back(FieldInfo("padding", 6, 2, "uint16_t", "Alignment padding"));
-    featureData.fields.push_back(FieldInfo("feature_properties", 8, 4, "uint32_t", "Feature properties"));
+    featureData.fields.push_back(FieldInfo("feature_properties", 8, 4, "uint32_t", "Feature properties tied to variant"));
     registerChunk(featureData);
 
     // AdvancedFeature4 - Waypoints

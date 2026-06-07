@@ -40,11 +40,16 @@ struct AdvancedFeature1MountainFeaturesChunk0x46 : public ByteConvertible<Advanc
 
 #pragma pack(push, 1)
 struct AdvancedFeature1MountainFeatureEntry : public ByteConvertible<AdvancedFeature1MountainFeatureEntry> {
-    uint32_t feature_id; //Mountain/terrain feature ID from global array
-    uint8_t mountain_flag1; //Mountain-related flag from FUN_0089cf90
-    uint8_t mountain_flag2; //Mountain-related flag from FUN_0089d080
+    // feature_id is not an opaque instance ID: it stays identical across variant
+    // changes at the same position, so it encodes placement + feature family.
+    // Coordinate order (whether coord_a/coord_b is x/y) is not yet confirmed.
+    uint8_t  coord_a;         // coordinate component A (x or y, TBD)
+    uint8_t  coord_b;         // coordinate component B (x or y, TBD)
+    uint16_t feature_family;  // feature family; 0x014F for mountains
+    uint8_t  variant_index;   // mountain type / variant index (was mountain_flag1)
+    uint8_t  unknown_flag;    // always 0 so far (was mountain_flag2)
     uint16_t padding;   //alignment paddin
-    uint32_t feature_properties;    //Feature properties from mountain data structure (+0x44 offset)
+    uint32_t feature_properties;    //Feature properties tied to the selected variant (+0x44 offset)
 };
 #pragma pack(pop)
 static_assert(sizeof(AdvancedFeature1MountainFeatureEntry) == 0xc, "MountainFeatureEntry must be exactly 12 bytes");
