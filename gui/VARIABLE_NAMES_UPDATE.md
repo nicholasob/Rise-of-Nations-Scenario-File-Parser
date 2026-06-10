@@ -79,19 +79,19 @@ The properties panel now shows:
 ### Trigger Chunks
 - **TRIGGER_ENTRIES** (520 bytes each):
   - `trigger_name` (UTF-16)
-  - `encrypted_param1` (conditions/timing - XOR encrypted)
-  - `encrypted_param2` (actions/targets - XOR encrypted)
+  - `x_coordinate` (likely X coordinate for trigger-linked placements; previously `encrypted_param1`)
+  - `y_coordinate` (likely Y coordinate for trigger-linked placements; previously `encrypted_param2`)
 
 ### Map Resource Chunks
 - **MAP_RESOURCE_ENTRIES** (520 bytes each):
-  - `name` (UTF-16)
-  - `position_x/y` (XOR encrypted?)
+  - `name` (UTF-16LE map resource type name)
+  - `position_x/y` (map resource coordinates)
 
 ### Advanced Feature Chunks
 - **FEATURE_DATA** (12 bytes each) - Mountain features:
   - `feature_id`, `mountain_flag1/2`, `padding`, `feature_properties`
 
-- **LOCATION_DATA** (12 bytes each) - Waypoints:
+- **LOCATION_DATA** (12 bytes each) - Locations / terrain decorations:
   - `x_coordinate`, `y_coordinate`, `flags_and_id`
 
 - **COORDINATE_DATA** (8 bytes each) - Spatial groups:
@@ -174,7 +174,7 @@ Supported variable-length chunks include:
 - **PLAYER_DETAILS** (12 bytes each): `player_index`, `player_data_value`, `flags`
 - **RESOURCE_ENTRIES** (8 bytes each): `resource_index`, `value`
 - **FEATURE_DATA** (12 bytes each): mountain/terrain features
-- **LOCATION_DATA** (12 bytes each): waypoint coordinates
+- **LOCATION_DATA** (12 bytes each): location / terrain decoration coordinates
 - **COORDINATE_DATA** (8 bytes each): spatial group coordinates
 - **ENTITY_DATA** (16 bytes each): advanced feature entities
 - And many more...

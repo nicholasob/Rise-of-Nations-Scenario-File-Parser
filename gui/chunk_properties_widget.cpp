@@ -6,6 +6,84 @@
 #include <QHeaderView>
 #include <cstring>
 
+namespace {
+
+QString formatLocationFlagsAndId(uint32_t value)
+{
+    switch (value) {
+        case LocationEntryChunk0x4b::TERRAIN_DECORATION_BUSHES:
+            return "0x01739700 (terrain decoration: bushes)";
+        case LocationEntryChunk0x4b::TERRAIN_DECORATION_ROCKS:
+            return "0x01739701 (terrain decoration: rocks)";
+        default:
+            return QString("0x%1").arg(value, 8, 16, QChar('0')).toUpper();
+    }
+}
+
+QString decodeFieldValue(const Chunk* chunk,
+                         const FieldInfo& field,
+                         size_t absoluteOffset)
+{
+    if (absoluteOffset + field.size > chunk->data.size()) {
+        return "<out of range>";
+    }
+
+    const std::byte* dataPtr = chunk->data.data() + absoluteOffset;
+
+    if (field.type == "uint32_t" && field.size == 4) {
+        uint32_t val;
+        std::memcpy(&val, dataPtr, 4);
+
+        if (chunk->header.chunk_type_identifier == ChunkType::LOCATION_DATA &&
+            field.name == "flags_and_id") {
+            return formatLocationFlagsAndId(val);
+        }
+
+        return QString::number(val);
+    }
+
+    if (field.type == "int32_t" && field.size == 4) {
+        int32_t val;
+        std::memcpy(&val, dataPtr, 4);
+        return QString::number(val);
+    }
+
+    if (field.type == "uint16_t" && field.size == 2) {
+        uint16_t val;
+        std::memcpy(&val, dataPtr, 2);
+        return QString::number(val);
+    }
+
+    if (field.type == "uint8_t" && field.size == 1) {
+        uint8_t val = static_cast<uint8_t>(*dataPtr);
+        return QString::number(val);
+    }
+
+    if (field.type.find("char16_t") != std::string::npos) {
+        std::u16string str;
+        for (size_t j = 0; j < field.size / 2; ++j) {
+            char16_t ch;
+            std::memcpy(&ch, dataPtr + j * 2, 2);
+            if (ch == 0) {
+                break;
+            }
+            str += ch;
+        }
+        return QString::fromStdU16String(str);
+    }
+
+    QStringList hexBytes;
+    for (size_t j = 0; j < std::min(field.size, size_t(16)); ++j) {
+        hexBytes << QString("%1").arg(static_cast<uint8_t>(dataPtr[j]), 2, 16, QChar('0')).toUpper();
+    }
+    if (field.size > 16) {
+        hexBytes << "...";
+    }
+    return hexBytes.join(" ");
+}
+
+} // namespace
+
 ChunkPropertiesWidget::ChunkPropertiesWidget(ScenarioDocument *document, QWidget *parent)
     : QWidget(parent)
     , m_document(document)
@@ -155,57 +233,7 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
                     dataStart + static_cast<qulonglong>(absoluteOffset),
                     static_cast<qulonglong>(field.size));
 
-                // Value - decode based on type and size
-                QString value;
-
-                if (absoluteOffset + field.size <= chunk->data.size()) {
-                    const std::byte* dataPtr = chunk->data.data() + absoluteOffset;
-
-                    // Try to decode value based on type
-                    if (field.type == "uint32_t" && field.size == 4) {
-                        uint32_t val;
-                        std::memcpy(&val, dataPtr, 4);
-                        value = QString::number(val);
-                    }
-                    else if (field.type == "int32_t" && field.size == 4) {
-                        int32_t val;
-                        std::memcpy(&val, dataPtr, 4);
-                        value = QString::number(val);
-                    }
-                    else if (field.type == "uint16_t" && field.size == 2) {
-                        uint16_t val;
-                        std::memcpy(&val, dataPtr, 2);
-                        value = QString::number(val);
-                    }
-                    else if (field.type == "uint8_t" && field.size == 1) {
-                        uint8_t val = static_cast<uint8_t>(*dataPtr);
-                        value = QString::number(val);
-                    }
-                    else if (field.type.find("char16_t") != std::string::npos) {
-                        // UTF-16 string
-                        std::u16string str;
-                        for (size_t j = 0; j < field.size / 2; ++j) {
-                            char16_t ch;
-                            std::memcpy(&ch, dataPtr + j * 2, 2);
-                            if (ch == 0) break;
-                            str += ch;
-                        }
-                        value = QString::fromStdU16String(str);
-                    }
-                    else {
-                        // Show as hex bytes
-                        QStringList hexBytes;
-                        for (size_t j = 0; j < std::min(field.size, size_t(16)); ++j) {
-                            hexBytes << QString("%1").arg(static_cast<uint8_t>(dataPtr[j]), 2, 16, QChar('0')).toUpper();
-                        }
-                        if (field.size > 16) {
-                            hexBytes << "...";
-                        }
-                        value = hexBytes.join(" ");
-                    }
-                } else {
-                    value = "<out of range>";
-                }
+                QString value = decodeFieldValue(chunk, field, absoluteOffset);
 
                 QTableWidgetItem *valueItem = new QTableWidgetItem(value);
                 if (!field.description.empty()) {
@@ -251,57 +279,7 @@ void ChunkPropertiesWidget::displayFields(const Chunk* chunk)
                 dataStart + static_cast<qulonglong>(field.offset),
                 static_cast<qulonglong>(field.size));
 
-            // Value - decode based on type and size
-            QString value;
-
-            if (field.offset + field.size <= chunk->data.size()) {
-                const std::byte* dataPtr = chunk->data.data() + field.offset;
-
-                // Try to decode value based on type
-                if (field.type == "uint32_t" && field.size == 4) {
-                    uint32_t val;
-                    std::memcpy(&val, dataPtr, 4);
-                    value = QString::number(val);
-                }
-                else if (field.type == "int32_t" && field.size == 4) {
-                    int32_t val;
-                    std::memcpy(&val, dataPtr, 4);
-                    value = QString::number(val);
-                }
-                else if (field.type == "uint16_t" && field.size == 2) {
-                    uint16_t val;
-                    std::memcpy(&val, dataPtr, 2);
-                    value = QString::number(val);
-                }
-                else if (field.type == "uint8_t" && field.size == 1) {
-                    uint8_t val = static_cast<uint8_t>(*dataPtr);
-                    value = QString::number(val);
-                }
-                else if (field.type.find("char16_t") != std::string::npos) {
-                    // UTF-16 string
-                    std::u16string str;
-                    for (size_t j = 0; j < field.size / 2; ++j) {
-                        char16_t ch;
-                        std::memcpy(&ch, dataPtr + j * 2, 2);
-                        if (ch == 0) break;
-                        str += ch;
-                    }
-                    value = QString::fromStdU16String(str);
-                }
-                else {
-                    // Show as hex bytes
-                    QStringList hexBytes;
-                    for (size_t j = 0; j < std::min(field.size, size_t(16)); ++j) {
-                        hexBytes << QString("%1").arg(static_cast<uint8_t>(dataPtr[j]), 2, 16, QChar('0')).toUpper();
-                    }
-                    if (field.size > 16) {
-                        hexBytes << "...";
-                    }
-                    value = hexBytes.join(" ");
-                }
-            } else {
-                value = "<out of range>";
-            }
+            QString value = decodeFieldValue(chunk, field, field.offset);
 
             QTableWidgetItem *valueItem = new QTableWidgetItem(value);
             if (!field.description.empty()) {

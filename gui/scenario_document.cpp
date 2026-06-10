@@ -17,6 +17,19 @@
 
 static const Chunk* findChunkByTypeRecursive(const std::vector<Chunk>& chunks, ChunkType type);
 
+namespace {
+
+size_t elementCountForChunkData(const ChunkInfo& info, const Chunk& chunk)
+{
+    if (info.dataSize == 0) {
+        return 1;
+    }
+
+    return chunk.data.size() / info.dataSize;
+}
+
+} // namespace
+
 ScenarioDocument::ScenarioDocument(QObject *parent)
     : QObject(parent)
     , m_dirty(false)
@@ -503,10 +516,8 @@ std::vector<bool> ScenarioDocument::buildIgnoreMaskForStringPadding(
         const ChunkInfo* info = metadata.getChunkInfo(newC->header.chunk_type_identifier);
         if (!info) continue;
         const size_t elementSize = info->dataSize;
-        size_t oldElements = (elementSize > 0 && oldC->data.size() >= elementSize)
-            ? oldC->data.size() / elementSize : 1;
-        size_t newElements = (elementSize > 0 && newC->data.size() >= elementSize)
-            ? newC->data.size() / elementSize : 1;
+        const size_t oldElements = elementCountForChunkData(*info, *oldC);
+        const size_t newElements = elementCountForChunkData(*info, *newC);
         const size_t compareElements = std::min(oldElements, newElements);
 
         for (size_t elemIdx = 0; elemIdx < compareElements; ++elemIdx) {
@@ -660,10 +671,8 @@ QVector<FieldChange> ScenarioDocument::computeFieldChanges(
         }
 
         const size_t elementSize = info->dataSize;
-        size_t oldElements = (elementSize > 0 && oldC->data.size() >= elementSize)
-            ? oldC->data.size() / elementSize : 1;
-        size_t newElements = (elementSize > 0 && newC->data.size() >= elementSize)
-            ? newC->data.size() / elementSize : 1;
+        const size_t oldElements = elementCountForChunkData(*info, *oldC);
+        const size_t newElements = elementCountForChunkData(*info, *newC);
         const size_t compareElements = std::min(oldElements, newElements);
 
         for (size_t elemIdx = 0; elemIdx < compareElements; ++elemIdx) {

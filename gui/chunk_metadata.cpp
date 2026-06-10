@@ -317,20 +317,20 @@ void ChunkMetadata::registerChunks()
     // TriggerDataEntry0x3 (520 bytes each)
     ChunkInfo triggerEntry(ChunkType::TRIGGER_ENTRIES, "TRIGGER_ENTRIES", "Triggers", 520, colorTrigger);
     triggerEntry.fields.push_back(FieldInfo("trigger_name", 0, 512, "char16_t[256]", "Trigger name/description (UTF-16)"));
-    triggerEntry.fields.push_back(FieldInfo("encrypted_param1", 512, 4, "uint32_t", "Conditions/timing (XOR encrypted)"));
-    triggerEntry.fields.push_back(FieldInfo("encrypted_param2", 516, 4, "uint32_t", "Actions/targets (XOR encrypted)"));
+    triggerEntry.fields.push_back(FieldInfo("x_coordinate", 512, 4, "uint32_t", "Likely X coordinate for trigger-linked placements; previously labeled encrypted_param1"));
+    triggerEntry.fields.push_back(FieldInfo("y_coordinate", 516, 4, "uint32_t", "Likely Y coordinate for trigger-linked placements; previously labeled encrypted_param2"));
     registerChunk(triggerEntry);
 
     // Map resources chunks
     ChunkInfo resourcesCount(ChunkType::MAP_RESOURCES_COUNT, "MAP_RESOURCES_COUNT", "Map Resources", 4, colorResource);
-    resourcesCount.fields.push_back(FieldInfo("map_resource_count", 0, 4, "uint32_t", "Number of active map resources"));
+    resourcesCount.fields.push_back(FieldInfo("map_resource_count", 0, 4, "uint32_t", "Number of active map resource placements"));
     registerChunk(resourcesCount);
 
     // MapResourceData0x4 (520 bytes each)
     ChunkInfo resourcesEntry(ChunkType::MAP_RESOURCES_ENTRIES, "MAP_RESOURCES_ENTRIES", "Map Resources", 520, colorResource);
-    resourcesEntry.fields.push_back(FieldInfo("name", 0, 512, "char16_t[256]", "Resource name (UTF-16)"));
-    resourcesEntry.fields.push_back(FieldInfo("position_x", 512, 4, "uint32_t", "Economic parameter 1 (XOR encrypted)"));
-    resourcesEntry.fields.push_back(FieldInfo("position_y", 516, 4, "uint32_t", "Economic parameter 2 (XOR encrypted)"));
+    resourcesEntry.fields.push_back(FieldInfo("name", 0, 512, "char16_t[256]", "Map resource type name (UTF-16LE)"));
+    resourcesEntry.fields.push_back(FieldInfo("position_x", 512, 4, "uint32_t", "Map resource X coordinate"));
+    resourcesEntry.fields.push_back(FieldInfo("position_y", 516, 4, "uint32_t", "Map resource Y coordinate"));
     registerChunk(resourcesEntry);
 
     // Advanced feature chunks
@@ -350,16 +350,16 @@ void ChunkMetadata::registerChunks()
     featureData.fields.push_back(FieldInfo("feature_properties", 8, 4, "uint32_t", "Feature properties tied to variant"));
     registerChunk(featureData);
 
-    // AdvancedFeature4 - Waypoints
+    // AdvancedFeature4 - Locations / terrain decorations
     ChunkInfo locationCount(ChunkType::LOCATION_COUNT, "LOCATION_COUNT", "Advanced", 4, colorAdvanced);
-    locationCount.fields.push_back(FieldInfo("waypoint_count", 0, 4, "int32_t", "Number of waypoints"));
+    locationCount.fields.push_back(FieldInfo("location_count", 0, 4, "int32_t", "Number of location / terrain decoration entries"));
     registerChunk(locationCount);
 
-    // WaypointEntryChunk0x4b (12 bytes each)
+    // LocationEntryChunk0x4b (12 bytes each)
     ChunkInfo locationData(ChunkType::LOCATION_DATA, "LOCATION_DATA", "Advanced", 12, colorAdvanced);
     locationData.fields.push_back(FieldInfo("x_coordinate", 0, 4, "int32_t", "X position"));
     locationData.fields.push_back(FieldInfo("y_coordinate", 4, 4, "int32_t", "Y position"));
-    locationData.fields.push_back(FieldInfo("flags_and_id", 8, 4, "uint32_t", "Waypoint ID and status flags"));
+    locationData.fields.push_back(FieldInfo("flags_and_id", 8, 4, "uint32_t", "Placement signature / flags / ID (observed: 0x01739700=bushes, 0x01739701=rocks)"));
     registerChunk(locationData);
 
     // AdvancedFeature2 - Spatial groups

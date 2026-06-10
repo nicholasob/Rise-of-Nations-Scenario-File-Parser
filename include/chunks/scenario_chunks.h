@@ -227,14 +227,16 @@ static_assert(sizeof(ScenarioHeader0x6C) == 384, "ScenarioHeader must be exactly
 //individual trigger data entry (520 bytes each)
 struct TriggerDataEntry0x3 {
     char16_t trigger_name[256];   // 512 bytes - trigger name/description
-    uint32_t encrypted_param1;    // 4 bytes - conditions/timing (is XOR encrypted?)
-    uint32_t encrypted_param2;    // 4 bytes - actions/targets (is XOR encrypted?)
-    
-    //helper methods to decrypt parameters
-    uint32_t get_param1() const { return encrypted_param1 ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
-    uint32_t get_param2() const { return encrypted_param2 ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
-    void set_param1(uint32_t value) { encrypted_param1 = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
-    void set_param2(uint32_t value) { encrypted_param2 = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
+    uint32_t x_coordinate;        // 4 bytes - likely X position for trigger-linked placements such as Goody Box
+    uint32_t y_coordinate;        // 4 bytes - likely Y position for trigger-linked placements such as Goody Box
+
+    // Previous working assumption kept for reference:
+    // these fields were named encrypted_param1 / encrypted_param2 and treated
+    // as XOR-encrypted condition/action payloads with key 0x63637.
+    uint32_t get_param1() const { return x_coordinate ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
+    uint32_t get_param2() const { return y_coordinate ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
+    void set_param1(uint32_t value) { x_coordinate = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
+    void set_param2(uint32_t value) { y_coordinate = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
 };
 static_assert(sizeof(TriggerDataEntry0x3) == 520, "TriggerDataEntry0x3 must be exactly 520 bytes");
 
@@ -271,27 +273,23 @@ struct TriggerDataSubChunk0x16 : public VariableLengthArrayChunk<TriggerDataSubC
 };
 #pragma pack(pop)
 
-//individual good data structure (520 bytes per good)
+// Individual map resource placement (520 bytes each).
+// Observed names from the editor include:
+// Relics, Wine, Papyrus, Dye, Silk, Spice, Salt, Horses, Rubber,
+// Sulphur, Amber, Silver, Tobacco, Marble, Furs, Cotton, Bison,
+// Copper, Peacocks, Citrus, Sugar, Diamonds, Gems, Aluminum,
+// Obsidian, Wool, Coal, Uranium, Titanium, Fish, and Whales.
 struct MapResourceData0x4 {
-    char16_t name[256];   // map resource name (512 bytes - wide characters)
-    uint32_t position_x;  // XOR encrypted with 0x63637 based on code?
-    uint32_t position_y;  // XOR encrypted with 0x63637 based on code?
+    char16_t name[256];   // map resource type name (512 bytes, UTF-16LE)
+    uint32_t position_x;  // map resource X coordinate
+    uint32_t position_y;  // map resource Y coordinate
     // Total: 520 bytes (0x208)
-    
-    /*
-    //helper functions to decrypt the parameters
-    uint32_t get_param1() const { return position_x ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
-    uint32_t get_param2() const { return position_y ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
-    
-    void set_param1(uint32_t value) { position_x = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
-    void set_param2(uint32_t value) { position_y = value ^ EncryptionHelper::PLAYER_BUILDING_DATA_XOR_KEY; }
-    */
 };
 static_assert(sizeof(MapResourceData0x4) == 520, "MapResourceData0x4 must be exactly 520 bytes");
 
 #pragma pack(push, 1)
 struct MapResourceCountSubChunk0x17 : public ByteConvertible<MapResourceCountSubChunk0x17> {
-    uint32_t map_resource_count;    //number of active map_resources in the scenario
+    uint32_t map_resource_count;    // number of active map resource placements in the scenario
 };
 #pragma pack(pop)
 static_assert(sizeof(MapResourceCountSubChunk0x17) == 4, "MapResourceCountSubChunk0x17 header size mismatch");

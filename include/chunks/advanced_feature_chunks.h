@@ -159,40 +159,59 @@ struct AdvancedFeature3CoordinateArrayChunk0x62 : public VariableLengthArrayChun
 };
 #pragma pack(pop)
 
-// Sub-chunk 0x4A - contains count of waypoint entries
+// Sub-chunk 0x4A - contains count of location/decoration entries
 #pragma pack(push,1)
 struct AdvancedFeature4Chunk0x4a : public ByteConvertible<AdvancedFeature4Chunk0x4a> {
-    int32_t waypoint_count;  //number of waypoints in the following sub-chunk
+    int32_t location_count;  //number of location/decoration entries in the following sub-chunk
 };
 #pragma pack(pop)
 
-//individual waypoint entry structure
-struct WaypointEntryChunk0x4b {
+// Individual location entry structure used for waypoints and terrain decorations.
+struct LocationEntryChunk0x4b {
     int32_t x_coordinate; // X position (converted from float to int)
     int32_t y_coordinate; // Y position (converted from float to int)
-    uint32_t flags_and_id; // contains waypoint ID and status flags
+    uint32_t flags_and_id; // placement signature / flags / ID
+
+    static constexpr uint32_t TERRAIN_DECORATION_BUSHES = 0x01739700;
+    static constexpr uint32_t TERRAIN_DECORATION_ROCKS  = 0x01739701;
+
+    bool is_known_terrain_decoration() const {
+        return flags_and_id == TERRAIN_DECORATION_BUSHES ||
+               flags_and_id == TERRAIN_DECORATION_ROCKS;
+    }
+
+    const char* known_terrain_decoration_name() const {
+        switch (flags_and_id) {
+            case TERRAIN_DECORATION_BUSHES:
+                return "Bushes";
+            case TERRAIN_DECORATION_ROCKS:
+                return "Rocks";
+            default:
+                return nullptr;
+        }
+    }
 };
 
 #pragma pack(push,1)
-struct AdvancedFeature4Chunk0x4b : public VariableLengthArrayChunk<AdvancedFeature4Chunk0x4b, WaypointEntryChunk0x4b> {
-    std::vector<WaypointEntryChunk0x4b> waypoints_count;
+struct AdvancedFeature4Chunk0x4b : public VariableLengthArrayChunk<AdvancedFeature4Chunk0x4b, LocationEntryChunk0x4b> {
+    std::vector<LocationEntryChunk0x4b> location_entries;
 
     AdvancedFeature4Chunk0x4b() = default;
 
     AdvancedFeature4Chunk0x4b(const AdvancedFeature4Chunk0x4a& header) {
-        waypoints_count.resize(header.waypoint_count);
+        location_entries.resize(header.location_count);
     }
 
-    AdvancedFeature4Chunk0x4b(const size_t& coordinate_count) {
-        waypoints_count.resize(coordinate_count);
+    AdvancedFeature4Chunk0x4b(const size_t& location_count) {
+        location_entries.resize(location_count);
     }
 
-    std::vector<WaypointEntryChunk0x4b>& get_container() override {
-        return waypoints_count;
+    std::vector<LocationEntryChunk0x4b>& get_container() override {
+        return location_entries;
     }
     
-    const std::vector<WaypointEntryChunk0x4b>& get_container() const override {
-        return waypoints_count;
+    const std::vector<LocationEntryChunk0x4b>& get_container() const override {
+        return location_entries;
     }
 };
 #pragma pack(pop)

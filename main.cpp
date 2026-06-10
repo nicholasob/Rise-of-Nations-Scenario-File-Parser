@@ -7,6 +7,7 @@
 #include <codecvt>
 #include <cstring>
 #include <algorithm>
+#include <iomanip>
 
 #include "chunk_types.h"
 #include "compression.h"
@@ -32,6 +33,22 @@ size_t BUILDING_TYPE_COUNT = SIZE_MAX;
 size_t FEATURE_COUNT = SIZE_MAX;
 size_t LOCATION_COUNT = SIZE_MAX;
 size_t ENTITY_COUNT = SIZE_MAX;
+
+namespace {
+
+const char* KnownLocationEntryName(uint32_t flagsAndId)
+{
+    switch (flagsAndId) {
+        case LocationEntryChunk0x4b::TERRAIN_DECORATION_BUSHES:
+            return "Bushes";
+        case LocationEntryChunk0x4b::TERRAIN_DECORATION_ROCKS:
+            return "Rocks";
+        default:
+            return nullptr;
+    }
+}
+
+} // namespace
 
 int RunParseMode(int argc, char* argv[]);
 int RunModifyMode(int argc, char* argv[]);
@@ -477,11 +494,25 @@ int RunParseMode(int argc, char* argv[]) {
                 case ChunkType::MAP_RESOURCES_ENTRIES: //0x18
                 {
                     std::cout << "Map Resource Entries chunk size: " << front->data.size() << std::endl;
-                    if (MAP_RESOURCES_COUNT > 0) {
-                        std::cout << "Parsing map_resources entries for " << MAP_RESOURCES_COUNT << " map_resources..." << std::endl;
+                    if (MAP_RESOURCES_COUNT != SIZE_MAX) {
+                        if (MAP_RESOURCES_COUNT == 0) {
+                            std::cout << "No map resource entries present." << std::endl;
+                            break;
+                        }
+
+                        std::cout << "Parsing map_resources entries for " << MAP_RESOURCES_COUNT << " map resources..." << std::endl;
                         try {
                             MapResourceDataSubChunk0x18 mapResourceEntries = MapResourceDataSubChunk0x18::from_bytes(front->data, MAP_RESOURCES_COUNT);
                             std::cout << "Successfully parsed map_resources entries" << std::endl;
+
+                            const size_t printLimit = std::min(static_cast<size_t>(5), mapResourceEntries.map_resources.size());
+                            for (size_t i = 0; i < printLimit; ++i) {
+                                const auto& entry = mapResourceEntries.map_resources[i];
+                                std::cout << "  MapResource[" << i << "]: "
+                                          << ChunkParsers::ConvertChar16ToString(entry.name, 256)
+                                          << " at (" << entry.position_x << ", " << entry.position_y << ")"
+                                          << std::endl;
+                            }
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing map_resources entries: " << e.what() << std::endl;
                         }
@@ -668,8 +699,8 @@ int RunParseMode(int argc, char* argv[]) {
                     if ((unsigned long int)front->data.size() >= sizeof(AdvancedFeature4Chunk0x4a)) {
                         try {
                             AdvancedFeature4Chunk0x4a locationCount = AdvancedFeature4Chunk0x4a::from_bytes(front->data);
-                            std::cout << "Waypoint count: " << locationCount.waypoint_count << std::endl;
-                            LOCATION_COUNT = locationCount.waypoint_count; //store for LOCATION_DATA parsing later on
+                            std::cout << "Location entry count: " << locationCount.location_count << std::endl;
+                            LOCATION_COUNT = locationCount.location_count; //store for LOCATION_DATA parsing later on
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing location count: " << e.what() << std::endl;
                         }
@@ -680,11 +711,33 @@ int RunParseMode(int argc, char* argv[]) {
                 case ChunkType::LOCATION_DATA: //0x4B
                 {
                     std::cout << "Location Data chunk size: " << front->data.size() << std::endl;
-                    if (LOCATION_COUNT != SIZE_MAX && LOCATION_COUNT > 0) {
-                        std::cout << "Parsing location data for " << LOCATION_COUNT << " waypoints..." << std::endl;
+                    if (LOCATION_COUNT != SIZE_MAX) {
+                        if (LOCATION_COUNT == 0) {
+                            std::cout << "No location entries present." << std::endl;
+                            break;
+                        }
+
+                        std::cout << "Parsing location data for " << LOCATION_COUNT << " location entries..." << std::endl;
                         try {
                             AdvancedFeature4Chunk0x4b locationData = AdvancedFeature4Chunk0x4b::from_bytes(front->data, LOCATION_COUNT);
                             std::cout << "Successfully parsed location data" << std::endl;
+
+                            const size_t printLimit = std::min(static_cast<size_t>(5), locationData.location_entries.size());
+                            for (size_t i = 0; i < printLimit; ++i) {
+                                const auto& entry = locationData.location_entries[i];
+                                std::cout << "  Location[" << i << "]: (" << entry.x_coordinate << ", " << entry.y_coordinate << ")";
+
+                                if (const char* decorationName = KnownLocationEntryName(entry.flags_and_id)) {
+                                    std::cout << " flags_and_id=0x" << std::uppercase << std::hex
+                                              << std::setw(8) << std::setfill('0') << entry.flags_and_id << std::nouppercase << std::dec
+                                              << " (" << decorationName << ")";
+                                } else {
+                                    std::cout << " flags_and_id=0x" << std::uppercase << std::hex
+                                              << std::setw(8) << std::setfill('0') << entry.flags_and_id << std::nouppercase << std::dec;
+                                }
+
+                                std::cout << std::endl;
+                            }
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing location data: " << e.what() << std::endl;
                         }
