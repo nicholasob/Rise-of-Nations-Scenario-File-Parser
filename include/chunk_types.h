@@ -179,9 +179,9 @@ enum class ChunkType : uint16_t {
 
     //naming system
         //85 unit types, since 0x220-0x275
-    TECH_TREE_AVAILABLE_UNIT_HEADER         = 0x26, // container for units availability for the player
-    TECH_TREE_UNIT_TYPE_COUNT               = 0x27, // number of available unit types (4 bytes)
-    TECH_TREE_UNIT_TYPE_NAMES               = 0x56, // names of available unit templates (512 bytes/building)
+    TECH_TREE_AVAILABLE_UNIT_HEADER         = 0x26, // container for player tech-tree / Library research availability
+    TECH_TREE_UNIT_TYPE_COUNT               = 0x27, // number of nation Library research entries (4 bytes)
+    TECH_TREE_UNIT_TYPE_NAMES               = 0x56, // names of nation Library research entries (512 bytes each)
         //350 building types, since 0x34-0x192
     TECH_TREE_AVAILABLE_BUILDINGS_HEADER    = 0x4C, // container for building availability for the player
     TECH_TREE_BUILDING_TYPE_COUNT           = 0x4D, // number of available building types (4 bytes)

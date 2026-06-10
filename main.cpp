@@ -560,8 +560,8 @@ int RunParseMode(int argc, char* argv[]) {
                     if ((unsigned long int)front->data.size() >= sizeof(TechTreeUnitTypeCountChunk0x27)) {
                         try {
                             TechTreeUnitTypeCountChunk0x27 unitTypeCount = TechTreeUnitTypeCountChunk0x27::from_bytes(front->data);
-                            std::cout << "Unit type count: " << unitTypeCount.unit_type_count << std::endl;
-                            UNIT_TYPE_COUNT = unitTypeCount.unit_type_count; //store for unit names parsing
+                            std::cout << "Library research entry count: " << unitTypeCount.unit_type_count << std::endl;
+                            UNIT_TYPE_COUNT = unitTypeCount.unit_type_count; //store for Library research name parsing
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing unit type count: " << e.what() << std::endl;
                         }
@@ -799,10 +799,10 @@ int RunParseMode(int argc, char* argv[]) {
                 {
                     std::cout << "Tech Tree Unit Type Names chunk size: " << front->data.size() << std::endl;
                     if (UNIT_TYPE_COUNT > 0) {
-                        std::cout << "Parsing unit type names for " << UNIT_TYPE_COUNT << " types..." << std::endl;
+                        std::cout << "Parsing Library research names for " << UNIT_TYPE_COUNT << " entries..." << std::endl;
                         try {
                             TechTreeUnitTypeNameChunk0x56 unitNames = TechTreeUnitTypeNameChunk0x56::from_bytes(front->data, UNIT_TYPE_COUNT);
-                            std::cout << "Successfully parsed unit type names" << std::endl;
+                            std::cout << "Successfully parsed Library research names" << std::endl;
                             std::cout << "Printing all names found: " << std::endl;
                             for(auto unit : unitNames.unit_names) {
                                 std::cout << ChunkParsers::ConvertChar16ToString(unit.name, 256) << std::endl;
@@ -811,7 +811,7 @@ int RunParseMode(int argc, char* argv[]) {
                             std::cerr << "Error parsing unit type names: " << e.what() << std::endl;
                         }
                     } else {
-                        std::cout << "Warning: No unit type count available for parsing unit names" << std::endl;
+                        std::cout << "Warning: No Library research count available for parsing names" << std::endl;
                     }
                 }
                 break;

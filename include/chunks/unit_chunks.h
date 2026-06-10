@@ -80,10 +80,10 @@ static_assert(sizeof(FormationChunk0x53) == 0x244, "FormationChunk0x53 must be e
 
 #pragma pack(push, 1)
 struct TechTreeUnitTypeCountChunk0x27 : public ByteConvertible<TechTreeUnitTypeCountChunk0x27> {
-    uint32_t unit_type_count; //number of active tech tree unit types
+    uint32_t unit_type_count; // number of active nation Library research entries
 
     BEGIN_FIELD_DESCRIPTORS(TechTreeUnitTypeCountChunk0x27)
-        DESCRIBE_FIELD(uint32_t, unit_type_count, "Number of unit types")
+        DESCRIBE_FIELD(uint32_t, unit_type_count, "Number of nation Library research entries")
     END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)

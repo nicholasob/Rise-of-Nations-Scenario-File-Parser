@@ -606,6 +606,24 @@ QString ScenarioDocument::formatFieldValue(const FieldInfo& field,
         return "<out of range>";
     }
 
+    if (field.type.find("char16_t") != std::string::npos) {
+        std::u16string str;
+        for (size_t i = 0; i + 1 < field.size; i += 2) {
+            char16_t ch;
+            std::memcpy(&ch, chunk.data.data() + absolute + i, sizeof(char16_t));
+            if (ch == 0) {
+                break;
+            }
+            str += ch;
+        }
+
+        if (str.empty()) {
+            return "<empty>";
+        }
+
+        return QString::fromStdU16String(str);
+    }
+
     QStringList parts;
     for (size_t i = 0; i < field.size; ++i) {
         const auto b = static_cast<uint8_t>(chunk.data[absolute + i]);

@@ -168,7 +168,7 @@ For chunks with repeating structures (e.g., PLAYER_DETAILS has multiple 12-byte 
 - Field names show as `[0] unit_type_name`, `[1] unit_type_name`, etc.
 
 Supported variable-length chunks include:
-- **TECH_TREE_UNIT_TYPE_NAMES** (512 bytes each): `unit_type_name` (UTF-16)
+- **TECH_TREE_UNIT_TYPE_NAMES** (512 bytes each): `name` (UTF-16LE nation Library research name)
 - **TECH_TREE_BUILDING_TYPE_NAMES** (512 bytes each): `building_type_name` (UTF-16)
 - **GARRISON_UNIT_NAMES** (512 bytes each): `unit_name` (UTF-16)
 - **PLAYER_DETAILS** (12 bytes each): `player_index`, `player_data_value`, `flags`

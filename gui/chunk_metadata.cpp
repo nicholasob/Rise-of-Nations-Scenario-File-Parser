@@ -444,13 +444,9 @@ void ChunkMetadata::registerChunks()
         colorMetadata
     );
 
-    registerReflectedChunk<TechTreeTypeName>(
-        ChunkType::TECH_TREE_UNIT_TYPE_NAMES,
-        "TECH_TREE_UNIT_TYPE_NAMES",
-        "Tech Tree",
-        sizeof(TechTreeTypeName),
-        colorMetadata
-    );
+    ChunkInfo techTreeUnitNames(ChunkType::TECH_TREE_UNIT_TYPE_NAMES, "TECH_TREE_UNIT_TYPE_NAMES", "Tech Tree", sizeof(TechTreeTypeName), colorMetadata);
+    techTreeUnitNames.fields.push_back(FieldInfo("name", 0, 512, "char16_t[256]", "Nation Library research name (UTF-16LE)"));
+    registerChunk(techTreeUnitNames);
 
     ChunkInfo techTreeBuildingCount(ChunkType::TECH_TREE_BUILDING_TYPE_COUNT, "TECH_TREE_BUILDING_TYPE_COUNT", "Tech Tree", 4, colorMetadata);
     techTreeBuildingCount.fields.push_back(FieldInfo("count", 0, 4, "uint32_t", "Number of building types"));

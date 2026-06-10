@@ -31,13 +31,25 @@ struct Coordinate {
 };
 #pragma pack(pop)
 
-//tech tree type name structure (used across multiple chunks)
+// Tech tree name structure (used across multiple chunks).
+// For TECH_TREE_UNIT_TYPE_NAMES this currently appears to store nation
+// Library research names, observed in this order:
+// Age Advances: Classical Age, Medieval Age, Gunpowder Age,
+// Enlightenment Age, Industrial Age, Modern Age, Information Age
+// Science: Written Word, Mathematics, Chemistry, Laws of Nature,
+// Electricity, Electronics, Computerization
+// Commerce: Barter, Coinage, Trade, Mercantilism, Finance,
+// Assembly Line, Globalization
+// Civic: City State, Empire, Feudalism, Divine Right, Constitution,
+// Great Power, International Law
+// Military: The Art of War, Mercenaries, Standing Army, Conscription,
+// Levee en Masse, Nation-in-Arms, Selective Service
 #pragma pack(push, 1)
 struct TechTreeTypeName {
     char16_t name[256];
 
     BEGIN_FIELD_DESCRIPTORS(TechTreeTypeName)
-        DESCRIBE_FIELD(char16_t[256], name, "Type name (UTF-16)")
+        DESCRIBE_FIELD(char16_t[256], name, "Tech tree name / Library research name (UTF-16)")
     END_FIELD_DESCRIPTORS()
 };
 #pragma pack(pop)
