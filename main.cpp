@@ -805,7 +805,12 @@ int RunParseMode(int argc, char* argv[]) {
                             std::cout << "Successfully parsed Library research names" << std::endl;
                             std::cout << "Printing all names found: " << std::endl;
                             for(auto unit : unitNames.unit_names) {
-                                std::cout << ChunkParsers::ConvertChar16ToString(unit.name, 256) << std::endl;
+                                const std::string name = ChunkParsers::ConvertChar16ToString(unit.name, 256);
+                                if (const LibraryResearchInfo* info = unit.library_research_info()) {
+                                    std::cout << "[" << libraryResearchCategoryName(info->category) << "] " << name << std::endl;
+                                } else {
+                                    std::cout << name << std::endl;
+                                }
                             }
                         } catch (const std::exception& e) {
                             std::cerr << "Error parsing unit type names: " << e.what() << std::endl;
